@@ -13,19 +13,62 @@ class LogKeluarModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $allowedFields    = [
-        'uuid', 'personel_id', 'petugas_id',
+        'uuid', 'kendaraan_id', 'petugas_id',
         'kode_qr_used', 'timestamp_keluar',
         'shift', 'keterangan'
     ];
 
-    // ── Helper Methods ──────────────────────────────────────
+    // ──────────────────────────────────────────────────────────
+    // BASE JOIN — kendaraan + personel + pangkat + satker
+    // ──────────────────────────────────────────────────────────
+    private function baseJoin()
+    {
+        return $this->db->table('log_keluar l')
+                        ->select('
+                            l.*,
+                            k.plat_nomor,
+                            k.jenis,
+                            k.merk,
+                            k.model,
+                            k.kendaraan_kode,
+                            p.nama          as personel_nama,
+                            p.nrp,
+                            p.id            as personel_id,
+                            p.foto          as personel_foto,
+                            pk.pangkat_singkat,
+                            pk.nama_pangkat,
+                            pk.kelompok     as pangkat_kelompok,
+                            sk.nama_singkat as satker_singkat,
+                            sk.kode_satker,
+                            u.nama          as petugas_nama
+                        ')
+                        ->join('kendaraan k',     'k.id = l.kendaraan_id',  'left')
+                        ->join('personel p',      'p.id = k.personel_id',   'left')
+                        ->join('pangkat pk',       'pk.id = p.pangkat_id',   'left')
+                        ->join('satuan_kerja sk',  'sk.id = p.satker_id',    'left')
+                        ->join('users u',          'u.id = l.petugas_id',    'left');
+    }
 
+    // ──────────────────────────────────────────────────────────
+    // Get log hari ini (count) — untuk dashboard
+    // ──────────────────────────────────────────────────────────
     public function getLogHariIni(): int
     {
         return $this->where('DATE(timestamp_keluar)', date('Y-m-d'))
                     ->countAllResults();
     }
 
+    public function getLogBulanIni(): int
+    {
+        return $this->where(
+            "DATE_FORMAT(timestamp_keluar,'%Y-%m')",
+            date('Y-m')
+        )->countAllResults();
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // Get log hari ini by petugas (count) — untuk dashboard
+    // ──────────────────────────────────────────────────────────
     public function getLogHariIniByPetugas(int $petugasId): int
     {
         return $this->where('petugas_id', $petugasId)
@@ -33,86 +76,37 @@ class LogKeluarModel extends Model
                     ->countAllResults();
     }
 
+    // ──────────────────────────────────────────────────────────
+    // Get log terbaru (untuk dashboard admin)
+    // ──────────────────────────────────────────────────────────
     public function getLogTerbaru(int $limit = 10): array
     {
-        return $this->db->table('log_keluar l')
-            ->select('
-                l.*,
-                p.nama as personel_nama,
-                p.nrp,
-                p.foto as personel_foto,
-
-                pk.nama_pangkat,
-                pk.pangkat_singkat,
-
-                sk.kode_satker,
-                sk.nama_singkat as satker_singkat,
-
-                u.nama as petugas_nama
-            ')
-            ->join('personel p', 'p.id = l.personel_id')
-            ->join('pangkat pk', 'pk.id = p.pangkat_id', 'left')
-            ->join('satuan_kerja sk', 'sk.id = p.satker_id', 'left')
-            ->join('users u', 'u.id = l.petugas_id')
-            ->orderBy('l.timestamp_keluar', 'DESC')
-            ->limit($limit)
-            ->get()
-            ->getResultArray();
-    }
-
-    public function getLogTerbaruByPetugas(int $petugasId, int $limit = 10): array
-    {
-        return $this->db->table('log_keluar l')
-            ->select('
-                l.*,
-                p.nama as personel_nama,
-                p.nrp,
-                p.foto as personel_foto,
-
-                pk.nama_pangkat,
-                pk.pangkat_singkat,
-
-                sk.kode_satker,
-                sk.nama_singkat as satker_singkat,
-
-                u.nama as petugas_nama
-            ')
-            ->join('personel p', 'p.id = l.personel_id')
-            ->join('pangkat pk', 'pk.id = p.pangkat_id', 'left')
-            ->join('satuan_kerja sk', 'sk.id = p.satker_id', 'left')
-            ->join('users u', 'u.id = l.petugas_id')
-            ->where('l.petugas_id', $petugasId)
-            ->orderBy('l.timestamp_keluar', 'DESC')
-            ->limit($limit)
-            ->get()
-            ->getResultArray();
+        return $this->baseJoin()
+                    ->orderBy('l.timestamp_keluar', 'DESC')
+                    ->limit($limit)
+                    ->get()
+                    ->getResultArray();
     }
 
     // ──────────────────────────────────────────────────────────
-    // Get log dengan filter lengkap (dipakai di laporan)
+    // Get log terbaru by petugas (untuk dashboard petugas)
+    // ──────────────────────────────────────────────────────────
+    public function getLogTerbaruByPetugas(int $petugasId, int $limit = 10): array
+    {
+        return $this->baseJoin()
+                    ->where('l.petugas_id', $petugasId)
+                    ->orderBy('l.timestamp_keluar', 'DESC')
+                    ->limit($limit)
+                    ->get()
+                    ->getResultArray();
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // Get log dengan filter lengkap (untuk laporan)
     // ──────────────────────────────────────────────────────────
     public function getLogByFilter(array $filter = []): array
     {
-        $builder = $this->db->table('log_keluar l')
-                            ->select('l.*,
-                                p.id as personel_id,
-                                p.nama as personel_nama,
-                                p.nrp,
-                                p.foto as personel_foto,
-
-                                pk.nama_pangkat,
-                                pk.pangkat_singkat,
-                                pk.kelompok   as pangkat_kelompok,
-
-                                sk.kode_satker,
-                                sk.nama_singkat as satker_singkat,
-
-                                u.nama as petugas_nama
-                            ')
-                            ->join('personel p', 'p.id = l.personel_id')
-                            ->join('pangkat pk', 'pk.id = p.pangkat_id', 'left')
-                            ->join('satuan_kerja sk', 'sk.id = p.satker_id', 'left')
-                            ->join('users u', 'u.id = l.petugas_id');
+        $builder = $this->baseJoin();
 
         if (!empty($filter['tanggal_dari'])) {
             $builder->where('DATE(l.timestamp_keluar) >=', $filter['tanggal_dari']);
@@ -138,9 +132,13 @@ class LogKeluarModel extends Model
             $builder->where('p.pangkat_id', $filter['pangkat_id']);
         }
 
-        // Filter kelompok pangkat (Perwira/Bintara/Tamtama/PNS)
         if (!empty($filter['kelompok'])) {
             $builder->where('pk.kelompok', $filter['kelompok']);
+        }
+
+        // Filter by jenis kendaraan
+        if (!empty($filter['jenis'])) {
+            $builder->where('k.jenis', $filter['jenis']);
         }
 
         return $builder->orderBy('l.timestamp_keluar', 'DESC')
@@ -148,14 +146,18 @@ class LogKeluarModel extends Model
                     ->getResultArray();
     }
 
-    public function saveLog(int $personelId, string $kodeQr): bool
+    // ──────────────────────────────────────────────────────────
+    // Save log scan
+    // Dipanggil dari Scan Controller setelah QR berhasil di-scan
+    // ──────────────────────────────────────────────────────────
+    public function saveLog(int $kendaraanId, string $kodeQr): bool
     {
         $now  = date('Y-m-d H:i:s');
         $hour = (int) date('H');
 
-        if ($hour >= 6 && $hour < 14) {
+        if ($hour >= 1 && $hour < 10) {
             $shift = 'pagi';
-        } elseif ($hour >= 14 && $hour < 22) {
+        } elseif ($hour >= 10 && $hour < 18) {
             $shift = 'siang';
         } else {
             $shift = 'malam';
@@ -163,13 +165,11 @@ class LogKeluarModel extends Model
 
         return $this->insert([
             'uuid'             => Uuid::uuid4()->toString(),
-            'personel_id'      => $personelId,
+            'kendaraan_id'     => $kendaraanId,
             'petugas_id'       => session()->get('user_id'),
             'kode_qr_used'     => $kodeQr,
             'timestamp_keluar' => $now,
             'shift'            => $shift,
         ]);
     }
-
-    
 }

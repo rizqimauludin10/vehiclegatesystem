@@ -4,18 +4,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="mobile-web-app-capable" content="yes">
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Theme color (warna status bar browser) -->
+    <meta name="theme-color" content="#38bdf8">
+
+    <!-- iOS Safari PWA support -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="VGS Scan">
+    <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+
+    <!-- Splash screen iOS (opsional tapi bagus) -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Mobile Scanner — VGS</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
-        rel="stylesheet">
+    <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet"> -->
+    <!-- <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet"> -->
+    <link rel="stylesheet" href="<?= base_url('vendor/bootstrap-icons/font/bootstrap-icons.min.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('vendor/fonts/inter/inter.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('vendor/fonts/jetbrains-mono/jetbrains-mono.css') ?>">
 
     <style>
     /* ════════════════════════════════════════
-       RESET & VARIABLES
+    RESET & VARIABLES
     ════════════════════════════════════════ */
     :root {
         --bg: #0a0f1e;
@@ -574,7 +588,7 @@
     }
 
     .personel-nama {
-        font-size: 15px;
+        font-size: 18px;
         font-weight: 700;
         color: var(--text);
         white-space: nowrap;
@@ -583,7 +597,7 @@
     }
 
     .personel-pangkat {
-        font-size: 12px;
+        font-size: 14px;
         color: var(--accent);
         font-weight: 600;
         margin-top: 2px;
@@ -591,15 +605,18 @@
 
     .personel-nrp {
         font-family: 'JetBrains Mono', monospace;
-        font-size: 11px;
+        font-size: 18px;
+        font-weight: 600;
         color: var(--text-muted);
         margin-top: 3px;
     }
 
     .personel-meta {
-        font-size: 11px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 18px;
         color: var(--text-muted);
         margin-top: 2px;
+        font-weight: 600;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -1119,6 +1136,315 @@
     .bottom-spacer {
         height: calc(var(--safe-bottom) + 16px);
     }
+
+
+    /* ════════════════════════════════════════
+   SCANNER WRAPPER — hide/show
+════════════════════════════════════════ */
+    .scanner-section {
+        transition: all .3s ease;
+    }
+
+    .scanner-section.hidden {
+        display: none;
+    }
+
+    /* ════════════════════════════════════════
+   FOTO PERSONEL BESAR (saat hasil scan)
+════════════════════════════════════════ */
+    .personel-foto-besar {
+        width: 100%;
+        height: auto;
+        /* tinggi mengikuti proporsi foto */
+        max-height: 350px;
+        /* batas maksimal biar tidak terlalu panjang */
+        object-fit: contain;
+        /* foto tampil full, tidak terpotong */
+        background: #000;
+        /* background hitam di sisi kiri/kanan jika foto portrait */
+        display: block;
+    }
+
+    .personel-foto-besar-placeholder {
+        width: 100%;
+        height: 220px;
+        /* placeholder tetap fixed height */
+        background: linear-gradient(135deg, #166534, #16a34a);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 72px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, .3);
+    }
+
+    .result-personel-foto {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .result-personel-foto-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top,
+                rgba(0, 0, 0, .9) 0%,
+                rgba(0, 0, 0, .3) 40%,
+                transparent 65%);
+        pointer-events: none;
+    }
+
+    .result-personel-foto-info {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 14px 16px;
+    }
+
+    .result-personel-foto-info .personel-nama {
+        font-size: 18px;
+        font-weight: 800;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, .8);
+    }
+
+    .result-personel-foto-info .personel-pangkat {
+        font-size: 14px;
+        margin-top: 3px;
+    }
+
+    /* ════════════════════════════════════════
+    KENDARAAN DETAIL — tampilan lebih besar
+    ════════════════════════════════════════ */
+    .k-thumb-besar {
+        width: 100%;
+        height: 160px;
+        object-fit: cover;
+        display: block;
+        cursor: pointer;
+        transition: opacity .15s;
+    }
+
+    .k-thumb-besar:active {
+        opacity: .8;
+    }
+
+    .k-thumb-besar-placeholder {
+        width: 100%;
+        height: 160px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 52px;
+    }
+
+    .k-thumb-besar-placeholder.motor {
+        background: rgba(139, 92, 246, .15);
+        color: #a78bfa;
+    }
+
+    .k-thumb-besar-placeholder.mobil {
+        background: rgba(59, 130, 246, .15);
+        color: #60a5fa;
+    }
+
+    .k-detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+    }
+
+    .k-detail-cell {
+        padding: 9px 16px;
+        border-right: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .k-detail-cell:nth-child(even) {
+        border-right: none;
+    }
+
+    .k-detail-cell:nth-last-child(-n+2) {
+        border-bottom: none;
+    }
+
+    .k-detail-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: var(--text-muted);
+        margin-bottom: 2px;
+    }
+
+    .k-detail-val {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--text);
+    }
+
+    .k-plat-besar {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: .06em;
+        padding: 10px 16px 4px;
+        color: var(--text);
+    }
+
+    .k-badges-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 16px 10px;
+    }
+
+    /* Portrait default — 1 kolom */
+    .result-card-inner {
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ════════════════════════════════════════
+    LANDSCAPE MODE — 2 kolom
+    Kiri: foto personel + identitas
+    Kanan: detail kendaraan
+    ════════════════════════════════════════ */
+    @media (orientation: landscape) {
+
+        body {
+            padding-bottom: calc(var(--safe-bottom) + 8px);
+        }
+
+        .content {
+            max-width: 100%;
+            padding: 8px 14px;
+            gap: 8px;
+        }
+
+        /* Status bar lebih compact */
+        .status-bar {
+            padding: 8px 14px;
+        }
+
+        /* Scanner lebih pendek di landscape */
+        .camera-viewport {
+            aspect-ratio: 16/7;
+        }
+
+        /* ── Result Card: 2 kolom ── */
+        .result-card-inner {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            grid-template-rows: auto auto 1fr;
+            min-height: 0;
+        }
+
+        /* Kolom kiri: foto personel — span 3 row */
+        .result-personel-foto {
+            grid-column: 1;
+            grid-row: 1 / 4;
+            border-right: 1px solid var(--success-bdr);
+            border-bottom: none !important;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Foto personel fill tinggi penuh kolom kiri */
+        .personel-foto-besar {
+            flex: 1;
+            width: 100%;
+            height: 0;
+            /* trick: flex:1 akan expand */
+            min-height: 180px;
+            max-height: none;
+            object-fit: contain;
+            object-position: center top;
+            background: #000;
+        }
+
+        .personel-foto-besar-placeholder {
+            flex: 1;
+            min-height: 180px;
+            height: 0;
+        }
+
+        .result-personel-foto-info .personel-pangkat {
+            font-size: 14px;
+        }
+
+        /* Info nama overlay tetap di bawah foto */
+        .result-personel-foto-overlay {
+            /* tetap absolute, tidak berubah */
+        }
+
+        .result-personel-foto-info {
+            /* tetap absolute, tidak berubah */
+        }
+
+        /* Kolom kanan row 1: info personel (NRP, meta) */
+        .result-personel {
+            grid-column: 2;
+            grid-row: 1;
+            border-top: none !important;
+            border-bottom: 1px solid var(--success-bdr);
+            padding: 10px 14px;
+        }
+
+        /* Kolom kanan row 2: header kendaraan */
+        .kendaraan-section-header {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        /* Kolom kanan row 3: list kendaraan */
+        #kendaraanList {
+            grid-column: 2;
+            grid-row: 3;
+            /* overflow-y: auto;
+            max-height: calc(100vh - 200px); */
+        }
+
+        /* Foto kendaraan lebih kecil di landscape */
+        .k-thumb-besar {
+            height: 240px;
+        }
+
+        .k-thumb-besar-placeholder {
+            height: 140px;
+            font-size: 36px;
+        }
+
+        /* Detail grid font lebih kecil */
+        .k-detail-val {
+            font-size: 18px;
+        }
+
+        .k-plat-besar {
+            font-size: 30px;
+            font-weight: 800;
+            padding: 8px 14px 2px;
+            letter-spacing: .06em;
+        }
+
+        /* Log disembunyikan di landscape */
+        .log-section {
+            display: none;
+        }
+
+        .personel-nrp {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .personel-meta {
+            font-size: 18px;
+        }
+
+        /* Scanner section lebih compact */
+        .scanner-section {
+            margin-bottom: 0;
+        }
+    }
     </style>
 </head>
 
@@ -1143,6 +1469,34 @@
         </div>
     </header>
 
+    <button id="pwaInstallBtn" style="
+    display: none;
+    align-items: center;
+    gap: 8px;
+    position: fixed;
+    bottom: 56px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9000;
+    white-space: nowrap;
+    padding: 11px 24px;
+    border-radius: 99px;
+    border: 1px solid rgba(56,189,248,.35);
+    background: rgba(8,13,23,.92);
+    color: #38bdf8;
+    font-family: 'Exo 2', system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .05em;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 24px rgba(0,0,0,.5);
+    ">
+        <i class="bi bi-download"></i>
+        Install Aplikasi VGS
+    </button>
+
+
     <!-- ═══ CONTENT ═══ -->
     <div class="content">
 
@@ -1154,8 +1508,8 @@
         </div>
 
         <!-- Scanner Section -->
-        <div class="scanner-section">
-            <div class="scanner-header">
+        <div class="scanner-section" id="scannerSection">
+            <div class=" scanner-header">
                 <div class="scanner-header-title">
                     <i class="bi bi-camera"></i>
                     Kamera Scanner
@@ -1196,32 +1550,35 @@
 
         <!-- Result Card (Success) -->
         <div class="result-card" id="resultCard">
+            <div class="result-card-inner" id="resultCardInner">
 
-            <!-- Personel Info -->
-            <div class="result-personel">
-                <div id="resFotoWrap">
-                    <div class="personel-foto-placeholder" id="resFotoPlaceholder">?</div>
+                <!-- KOLOM KIRI: Foto Personel Besar -->
+                <div class="result-personel-foto" id="resFotoSection">
+                    <!-- diisi JS -->
                 </div>
-                <div class="personel-info">
-                    <div class="personel-nama" id="resNama">-</div>
-                    <div class="personel-pangkat" id="resPangkat">-</div>
-                    <div class="personel-nrp" id="resNrp">-</div>
-                    <div class="personel-meta" id="resMeta">-</div>
+
+                <!-- KOLOM KANAN ROW 1: Info Personel -->
+                <div class="result-personel" style="border-top:1px solid var(--success-bdr);">
+                    <div class="personel-info">
+                        <div class="personel-nrp" id="resNrp">-</div>
+                        <div class="personel-meta" id="resMeta">-</div>
+                    </div>
+                    <div class="badge-ok">
+                        <i class="bi bi-check-circle-fill"></i> AKSES OK
+                    </div>
                 </div>
-                <div class="badge-ok">
-                    <i class="bi bi-check-circle-fill"></i> OK
+
+                <!-- KOLOM KANAN ROW 2: Header Kendaraan -->
+                <div class="kendaraan-section-header">
+                    <span class="kendaraan-section-label">
+                        <i class="bi bi-car-front me-1"></i> Kendaraan
+                    </span>
+                    <span class="kendaraan-count" id="kendaraanCount">-</span>
                 </div>
+
+                <!-- KOLOM KANAN ROW 3: Detail Kendaraan -->
+                <div id="kendaraanList"></div>
             </div>
-
-            <!-- Kendaraan List -->
-            <div class="kendaraan-section-header">
-                <span class="kendaraan-section-label">
-                    <i class="bi bi-car-front me-1"></i> Kendaraan
-                </span>
-                <span class="kendaraan-count" id="kendaraanCount">0 unit</span>
-            </div>
-            <div id="kendaraanList"></div>
-
         </div>
 
         <!-- Error Card -->
@@ -1264,7 +1621,8 @@
     </div>
 
     <!-- html5-qrcode library -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script> -->
+    <script src="<?= base_url('vendor/qrcode/html5-qrcode.min.js') ?>"></script>
 
     <script>
     /* ════════════════════════════════════════════════
@@ -1510,48 +1868,101 @@
     ════════════════════════════════════════════════ */
     function showSuccess(data) {
         const p = data.personel;
+        const k = data.kendaraan;
 
-        // Sembunyikan kamera frame sementara
+        // Sembunyikan scanner
+        document.getElementById('scannerSection').classList.add('hidden');
         document.getElementById('qrFrame').style.display = 'none';
 
-        setStatus('success', `Teridentifikasi: ${p.nama}`);
+        setStatus('success', `OK: ${k.plat_nomor}`);
 
-        // Foto personel
-        const wrap = document.getElementById('resFotoWrap');
+        // ── Foto personel besar ──
+        const fotoSection = document.getElementById('resFotoSection');
         if (p.foto) {
-            wrap.innerHTML = `<img src="${escAttr(p.foto)}" class="personel-foto" alt="">`;
+            fotoSection.innerHTML = `
+            <img src="${escAttr(p.foto)}" class="personel-foto-besar" alt="">
+            <div class="result-personel-foto-overlay"></div>
+            <div class="result-personel-foto-info">
+                <div class="personel-nama">${escHtml(p.nama)}</div>
+                <div class="personel-pangkat">${escHtml(p.pangkat_singkat || '-')}</div>
+            </div>`;
         } else {
-            wrap.innerHTML = `<div class="personel-foto-placeholder">${escHtml(p.nama.charAt(0).toUpperCase())}</div>`;
+            fotoSection.innerHTML = `
+            <div class="personel-foto-besar-placeholder">
+                ${escHtml(p.nama.charAt(0).toUpperCase())}
+            </div>
+            <div class="result-personel-foto-overlay"></div>
+            <div class="result-personel-foto-info">
+                <div class="personel-nama">${escHtml(p.nama)}</div>
+                <div class="personel-pangkat">${escHtml(p.pangkat_singkat || '-')}</div>
+            </div>`;
         }
 
-        document.getElementById('resNama').textContent = p.nama;
-        document.getElementById('resPangkat').textContent = p.pangkat_singkat || '-';
-        document.getElementById('resNrp').textContent = p.nrp;
+        // ── Info bawah foto ──
+        document.getElementById('resNrp').textContent = 'NRP: ' + (p.nrp || '-');
         document.getElementById('resMeta').textContent = [p.jabatan, p.satker_singkat].filter(Boolean).join(' · ') ||
             '-';
 
-        // Kendaraan
-        buildKendaraanList(data.kendaraan);
+        // ── Build kendaraan ──
+        buildKendaraanDetail(k);
 
-        // Update counter
+        // ── Counter & log ──
         scanTotal++;
         updateScanCount();
+        addLogItem(p, k, data.scan_time);
 
-        // Tambah ke log mini
-        addLogItem(p, data.scan_time);
-
-        // Tampilkan result card
+        // ── Tampilkan result ──
         document.getElementById('resultCard').classList.add('show');
         document.getElementById('errorCard').classList.remove('show');
         document.getElementById('btnScanLagi').classList.add('show');
-
-        // Scroll ke result
         document.getElementById('resultCard').scrollIntoView({
             behavior: 'smooth',
-            block: 'nearest'
+            block: 'start'
         });
 
         isProcessing = false;
+    }
+
+    function buildKendaraanDetail(k) {
+        const container = document.getElementById('kendaraanList');
+        const countBadge = document.getElementById('kendaraanCount');
+
+        countBadge.textContent = k.plat_nomor;
+
+        // Foto utama besar
+        const thumbHtml = k.thumbnail_url ?
+            `<img src="${escAttr(k.thumbnail_url)}" class="k-thumb-besar" alt=""
+               onclick="openLightbox('${escAttr(k.thumbnail_url)}','Foto — ${escAttr(k.plat_nomor)}')">` :
+            `<div class="k-thumb-besar-placeholder ${k.jenis}">
+               <i class="bi ${k.jenis === 'motor' ? 'bi-bicycle' : 'bi-car-front'}"></i>
+           </div>`;
+
+        const statusBadge = k.status === 'aktif' ?
+            `<span class="badge-status-k aktif">● Aktif</span>` :
+            `<span class="badge-status-k dibekukan">⚠ Dibekukan</span>`;
+
+        container.innerHTML = `
+        <div class="kendaraan-item">
+            ${thumbHtml}
+            <div class="k-plat-besar">${escHtml(k.plat_nomor)}</div>
+            <div class="k-badges-row">
+                <span class="badge-jenis ${k.jenis}">
+                    ${k.jenis.charAt(0).toUpperCase() + k.jenis.slice(1)}
+                </span>
+                ${statusBadge}
+            </div>
+            <div class="k-detail-grid">
+                <div class="k-detail-cell">
+                    <div class="k-detail-label">Merk / Model</div>
+                    <div class="k-detail-val">${escHtml((k.merk||'-') + ' ' + (k.model||''))}</div>
+                </div>
+                <div class="k-detail-cell">
+                    <div class="k-detail-label">Warna / Tahun</div>
+                    <div class="k-detail-val">${escHtml(k.warna || '-') + ' / ' + (k.tahun || '-')}</div>
+                </div>
+                
+            </div>
+        </div>`;
     }
 
     /* ════════════════════════════════════════════════
@@ -1664,18 +2075,19 @@
        RESET & SCAN LAGI
     ════════════════════════════════════════════════ */
     async function resetAndScan() {
+        // Sembunyikan hasil, tampilkan scanner kembali
         document.getElementById('resultCard').classList.remove('show');
         document.getElementById('errorCard').classList.remove('show');
         document.getElementById('btnScanLagi').classList.remove('show');
+        document.getElementById('scannerSection').classList.remove('hidden');
 
-        // Resume scanner jika masih aktif
+        // Resume scanner
         if (html5QrCode && isScanning) {
             try {
                 await html5QrCode.resume();
                 document.getElementById('qrFrame').style.display = 'flex';
                 setStatus('idle', 'Arahkan ke QR Code...');
             } catch (e) {
-                // Kalau gagal resume, restart
                 await stopScanner();
                 await startScanner();
             }
@@ -1683,33 +2095,44 @@
             setStatus('idle', 'Siap memindai QR Code');
         }
 
+        // Scroll ke atas
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
         isProcessing = false;
     }
 
     /* ════════════════════════════════════════════════
        LOG MINI
     ════════════════════════════════════════════════ */
-    function addLogItem(personel, scanTime) {
+    function addLogItem(personel, kendaraan, scanTime) {
         logItems.unshift({
             personel,
+            kendaraan,
             scanTime
         });
         if (logItems.length > 20) logItems.pop();
 
         const list = document.getElementById('logList');
-
         if (logItems.length === 1) list.innerHTML = '';
 
         const item = document.createElement('div');
         item.className = 'log-item';
         item.innerHTML = `
-        <div class="log-avatar">${escHtml(personel.nama.charAt(0).toUpperCase())}</div>
+        <div class="log-avatar">
+            ${escHtml(personel.nama.charAt(0).toUpperCase())}
+        </div>
         <div class="log-info">
             <div class="log-nama">${escHtml(personel.nama)}</div>
-            <div class="log-pangkat">${escHtml(personel.pangkat_singkat || '-')}</div>
+            <div class="log-pangkat">
+                ${escHtml(kendaraan.plat_nomor)}
+                · ${escHtml(personel.pangkat_singkat || '-')}
+            </div>
         </div>
-        <div class="log-time">${escHtml((scanTime || '').split(',')[1]?.trim() || scanTime || '')}</div>
-    `;
+        <div class="log-time">
+            ${escHtml((scanTime || '').split(',')[1]?.trim() || scanTime || '')}
+        </div>`;
 
         list.insertBefore(item, list.firstChild);
         document.getElementById('logCountBadge').textContent = logItems.length;
@@ -1746,6 +2169,77 @@
         if (!str) return '';
         return String(str).replace(/'/g, '%27').replace(/"/g, '%22');
     }
+    </script>
+
+    <!-- ═══════════════════════════════════════════════════════
+     PWA SERVICE WORKER REGISTER
+     Paste tepat sebelum </body>
+     di file view: app/Views/Scan/mobile.php
+════════════════════════════════════════════════════════ -->
+    <script>
+    (function() {
+        if (!('serviceWorker' in navigator)) {
+            console.warn('[PWA] Service Worker tidak didukung browser ini.');
+            return;
+        }
+
+        window.addEventListener('load', function() {
+            navigator.serviceWorker
+                .register('/sw.js', {
+                    scope: '/petugas/scan/mobile'
+                })
+                .then(function(reg) {
+                    console.log('[PWA] SW registered ✓ scope:', reg.scope);
+
+                    // Deteksi update SW — kalau ada versi baru, reload otomatis
+                    reg.addEventListener('updatefound', function() {
+                        var newSW = reg.installing;
+                        if (!newSW) return;
+                        newSW.addEventListener('statechange', function() {
+                            if (newSW.state === 'activated' && navigator.serviceWorker
+                                .controller) {
+                                console.log('[PWA] SW updated → reload');
+                                window.location.reload();
+                            }
+                        });
+                    });
+                })
+                .catch(function(err) {
+                    console.error('[PWA] SW registration failed:', err);
+                });
+        });
+
+        // ── Install prompt — simpan event, tampilkan tombol install custom ──
+        var deferredPrompt = null;
+
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            deferredPrompt = e;
+            console.log('[PWA] Install prompt siap.');
+
+            // Tampilkan tombol install jika ada di halaman
+            var btn = document.getElementById('pwaInstallBtn');
+            if (btn) btn.style.display = 'flex';
+        });
+
+        // Tombol install (opsional — lihat pwa-install-btn.html)
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#pwaInstallBtn')) return;
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(function(result) {
+                console.log('[PWA] User choice:', result.outcome);
+                deferredPrompt = null;
+                var btn = document.getElementById('pwaInstallBtn');
+                if (btn) btn.style.display = 'none';
+            });
+        });
+
+        window.addEventListener('appinstalled', function() {
+            console.log('[PWA] App berhasil di-install ✓');
+            deferredPrompt = null;
+        });
+    })();
     </script>
 
 </body>

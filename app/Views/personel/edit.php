@@ -73,7 +73,7 @@
                                 Pangkat <span class="required">*</span>
                             </label>
 
-                            <select name="pangkat_id" class="form-input" required>
+                            <select name="pangkat_id" id="pangkat_id" class="form-input" required>
                                 <option value="">-- Pilih Pangkat --</option>
 
                                 <?php foreach ($pangkat as $kelompok => $items): ?>
@@ -112,7 +112,7 @@
                                 Satuan Kerja <span class="required">*</span>
                             </label>
 
-                            <select name="satker_id" class="form-input" required>
+                            <select name="satker_id" id="satker_id" class="form-input" required>
                                 <option value="">-- Pilih Satuan Kerja --</option>
 
                                 <?php foreach ($satker as $s): ?>

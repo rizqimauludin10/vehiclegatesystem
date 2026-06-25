@@ -4,12 +4,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- PWA -->
+    <meta name="theme-color" content="#16a34a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="VGS">
+    <link rel="manifest" href="<?= base_url('manifest.json') ?>">
+    <link rel="apple-touch-icon" href="<?= base_url('assets/icons/icon-192.png') ?>">
+
     <title><?= $title ?? 'Vehicle Gate System' ?> — VGS</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <!-- <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
     <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
+        href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css"> -->
+
+    <link rel="stylesheet" href="<?= base_url('vendor/fonts/inter/inter.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('vendor/bootstrap/css/bootstrap.min.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('vendor/bootstrap-icons/font/bootstrap-icons.min.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('vendor/datatables/css/dataTables.bootstrap5.min.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('vendor/choices/css/choices.min.css') ?>">
+
     <style>
     * {
         font-family: 'Inter', sans-serif;
@@ -220,6 +237,31 @@
         right: 1rem;
         z-index: 9999;
     }
+
+
+    .sidebar-install {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: .5rem .75rem;
+        padding: .55rem .75rem;
+        background: rgba(22, 163, 74, .1);
+        border: 1px solid rgba(22, 163, 74, .2);
+        border-radius: 8px;
+        font-size: .78rem;
+        font-weight: 500;
+        color: #4ade80;
+        cursor: pointer;
+        transition: all .15s;
+    }
+
+    .sidebar-install:hover {
+        background: rgba(22, 163, 74, .2);
+    }
+
+    .sidebar-install i {
+        font-size: .9rem;
+    }
     </style>
     <?= $this->renderSection('styles') ?>
 </head>
@@ -292,10 +334,15 @@
                 class="nav-link-custom <?= str_starts_with(uri_string(), 'petugas/scan') ? 'active' : '' ?>">
                 <i class="bi bi-qr-code-scan"></i> Scan QR Code
             </a>
+            <a href="<?= base_url('petugas/scan/mobile') ?>"
+                class="nav-link-custom <?= str_starts_with(uri_string(), 'petugas/scan/mobile') ? 'active' : '' ?>">
+                <i class="bi bi-phone"></i> Mobile Scanner
+            </a>
             <a href="<?= base_url('petugas/laporan') ?>"
                 class="nav-link-custom <?= str_starts_with(uri_string(), 'petugas/laporan') ? 'active' : '' ?>">
                 <i class="bi bi-clock-history"></i> Log Scan
             </a>
+
 
             <?php endif; ?>
         </nav>
@@ -311,6 +358,11 @@
                     <i class="bi bi-box-arrow-right text-danger" style="font-size:1rem;"></i>
                 </a>
             </div>
+        </div>
+        <!-- Install PWA Button — hanya tampil jika belum installed -->
+        <div class="sidebar-install" id="btnInstallPwa" style="display:none;" onclick="installPwa()">
+            <i class="bi bi-download"></i>
+            <span>Install Aplikasi</span>
         </div>
     </aside>
 
@@ -357,7 +409,15 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script> -->
+
+    <script src="<?= base_url('vendor/jquery/jquery.min.js') ?>"></script>
+    <script src="<?= base_url('vendor/bootstrap/js/bootstrap.bundle.min.js') ?>"></script>
+    <script src="<?= base_url('vendor/datatables/js/jquery.dataTables.min.js') ?>"></script>
+    <script src="<?= base_url('vendor/datatables/js/dataTables.bootstrap5.min.js') ?>"></script>
+    <script src="<?= base_url('vendor/choices/js/choices.min.js') ?>"></script>
+
     <script>
     // Live clock
     function updateClock() {
@@ -380,6 +440,113 @@
             bootstrap.Toast.getOrCreateInstance(t).hide();
         });
     }, 4000);
+
+    document.addEventListener('DOMContentLoaded', function() {
+        new Choices('#pangkat_id', {
+            searchEnabled: true,
+            searchPlaceholderValue: 'Cari pangkat...',
+            itemSelectText: '',
+            noResultsText: 'Pangkat tidak ditemukan',
+            noChoicesText: 'Tidak ada pilihan',
+            shouldSort: false, // jaga urutan optgroup dari server
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        new Choices('#satker_id', {
+            searchEnabled: true,
+            searchPlaceholderValue: 'Cari satker...',
+            itemSelectText: '',
+            noResultsText: 'Satker tidak ditemukan',
+            noChoicesText: 'Tidak ada pilihan',
+            shouldSort: false, // jaga urutan optgroup dari server
+        });
+    });
+    </script>
+
+    <script>
+    /* ── Register Service Worker ── */
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', async () => {
+            try {
+                const reg = await navigator.serviceWorker.register(
+                    '<?= base_url('sw.js') ?>', {
+                        scope: '/'
+                    }
+                );
+
+                // Cek update SW
+                reg.addEventListener('updatefound', () => {
+                    const newSW = reg.installing;
+                    newSW.addEventListener('statechange', () => {
+                        if (newSW.state === 'installed' && navigator.serviceWorker
+                            .controller) {
+                            // Ada update — tampilkan notif
+                            showUpdateBanner();
+                        }
+                    });
+                });
+
+                console.log('[PWA] SW registered:', reg.scope);
+            } catch (err) {
+                console.warn('[PWA] SW registration failed:', err);
+            }
+        });
+    }
+
+    /* ── Install Prompt ─────────────────────────────────── */
+    let deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', e => {
+        e.preventDefault();
+        deferredPrompt = e;
+
+        // Tampilkan tombol install jika belum installed
+        const btn = document.getElementById('btnInstallPwa');
+        if (btn) btn.style.display = 'flex';
+    });
+
+    window.addEventListener('appinstalled', () => {
+        deferredPrompt = null;
+        const btn = document.getElementById('btnInstallPwa');
+        if (btn) btn.style.display = 'none';
+        console.log('[PWA] App installed!');
+    });
+
+    async function installPwa() {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const result = await deferredPrompt.userChoice;
+        console.log('[PWA] Install choice:', result.outcome);
+        deferredPrompt = null;
+    }
+
+    /* ── Update Banner ──────────────────────────────────── */
+    function showUpdateBanner() {
+        const banner = document.createElement('div');
+        banner.id = 'swUpdateBanner';
+        banner.style.cssText = `
+        position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);
+        background:#111827;color:#fff;border:1px solid rgba(255,255,255,.1);
+        border-radius:12px;padding:.75rem 1.25rem;font-size:.82rem;
+        display:flex;align-items:center;gap:.75rem;z-index:9999;
+        box-shadow:0 8px 24px rgba(0,0,0,.3);white-space:nowrap;
+    `;
+        banner.innerHTML = `
+        <i class="bi bi-arrow-clockwise" style="color:#16a34a;"></i>
+        Versi baru tersedia
+        <button onclick="location.reload()" style="
+            background:#16a34a;color:#fff;border:none;border-radius:7px;
+            padding:.3rem .75rem;font-size:.78rem;cursor:pointer;font-weight:600;">
+            Update
+        </button>
+        <button onclick="this.parentElement.remove()" style="
+            background:none;border:none;color:#9ca3af;cursor:pointer;font-size:1rem;">
+            ✕
+        </button>
+    `;
+        document.body.appendChild(banner);
+    }
     </script>
     <?= $this->renderSection('scripts') ?>
 </body>

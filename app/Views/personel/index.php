@@ -22,16 +22,28 @@
 <?php endif; ?>
 
 <div class="page-header mb-4">
+
     <div>
         <h5 class="page-header-title">Management Personel</h5>
-        <p class="page-header-sub">Kelola data personel dan kendaraan yang terdaftar</p>
+        <p class="page-header-sub">
+            Kelola data personel dan kendaraan yang terdaftar
+        </p>
     </div>
-    <a href="<?= base_url('admin/personel/create') ?>" class="btn-primary-custom">
-        <i class="bi bi-plus-lg me-1"></i> Tambah Personel
-    </a>
-    <a href="<?= base_url('admin/personel/importExcel') ?>" class="btn-secondary">
-        <i class="bi bi-file-earmark-excel me-1"></i> Import Excel
-    </a>
+
+    <div class="header-actions">
+
+        <a href="<?= base_url('admin/personel/importExcel') ?>" class="btn-secondary-custom">
+            <i class="bi bi-file-earmark-excel me-1"></i>
+            Import Excel
+        </a>
+
+        <a href="<?= base_url('admin/personel/create') ?>" class="btn-primary-custom">
+            <i class="bi bi-plus-lg me-1"></i>
+            Tambah Personel
+        </a>
+
+    </div>
+
 </div>
 
 <!-- Summary -->
@@ -162,11 +174,12 @@
                             <form action="<?= base_url('admin/personel/toggle/' . $p['uuid']) ?>" method="POST"
                                 class="d-inline" onsubmit="return confirm('Yakin ubah status personel ini?')">
                                 <?= csrf_field() ?>
-                                <button type="submit"
+                                <button type="button"
                                     class="btn-action <?= $p['status'] === 'aktif' ? 'deactivate' : 'activate' ?>"
-                                    title="<?= $p['status'] === 'aktif' ? 'Nonaktifkan' : 'Aktifkan' ?>">
-                                    <i
-                                        class="bi <?= $p['status'] === 'aktif' ? 'bi-toggle-on' : 'bi-toggle-off' ?>"></i>
+                                    title="<?= $p['status'] === 'aktif' ? 'Nonaktifkan' : 'Aktifkan' ?>"
+                                    onclick="konfirmasiToggle('<?= base_url('admin/personel/toggle/' . $p['uuid']) ?>','<?= esc($p['nama']) ?>','<?= $p['status'] ?>')">
+                                    <i class="bi <?= $p['status'] === 'aktif' ? 'bi-toggle-on' : 'bi-toggle-off' ?>">
+                                    </i>
                                 </button>
                             </form>
                             <?php if ($p['total_kendaraan'] == 0): ?>
@@ -189,6 +202,47 @@
     <?php endif; ?>
 </div>
 
+<!-- Modal Konfirmasi Toggle Status Personel -->
+<div class="modal fade" id="modalToggle" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content modal-custom">
+            <div class="modal-body-custom text-center" style="padding:1.75rem 1.25rem;">
+
+                <!-- Icon — berubah sesuai status -->
+                <div class="confirm-icon" id="toggleIcon">
+                    <i class="bi" id="toggleIconBi"></i>
+                </div>
+
+                <div class="confirm-title" id="toggleTitle">-</div>
+                <div class="confirm-desc">
+                    Personel <strong id="toggleNama">-</strong>
+                    akan <span id="toggleActionText">-</span>.
+                    <div id="toggleWarning" style="display:none;
+                        margin-top:10px;padding:8px 10px;
+                        background:#fef9c3;border-radius:8px;
+                        font-size:.78rem;color:#854d0e;">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Personel yang dinonaktifkan tidak dapat melakukan scan kendaraan.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer-custom"
+                style="display:flex; align-items:center; justify-content:center; gap:8px; padding:1rem 1.25rem; border-top:1px solid #f3f4f6;">
+                <button type="button" class="btn-cancel" data-bs-dismiss="modal">
+                    <i class="bi bi-x me-1"></i> Batal
+                </button>
+                <form id="formToggle" method="POST" class="d-inline">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn-confirm" id="toggleBtn">
+                        <i class="bi me-1" id="toggleBtnIcon"></i>
+                        <span id="toggleBtnText">-</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Delete Modal -->
 <div id="deleteModal" class="custom-modal">
     <div class="custom-modal-content">
@@ -206,8 +260,8 @@
 
 <?= $this->endSection() ?>
 <?= $this->section('styles') ?>
-<link rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/css/dataTables.bootstrap5.min.css">
+<!-- <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/css/dataTables.bootstrap5.min.css"> -->
 <style>
 /* =============================================
    BASE PAGE
@@ -231,6 +285,41 @@
     font-size: .78rem;
     color: #9ca3af;
     margin: 2px 0 0;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    flex-wrap: wrap;
+}
+
+.btn-secondary-custom {
+    display: inline-flex;
+    align-items: center;
+
+    padding: .5rem 1rem;
+
+    border-radius: 9px;
+
+    font-size: .82rem;
+    font-weight: 500;
+
+    text-decoration: none;
+
+    background: #fff;
+
+    border: 1px solid #d1d5db;
+
+    color: #374151;
+
+    transition: all .2s ease;
+}
+
+.btn-secondary-custom:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+    color: #111827;
 }
 
 .btn-primary-custom {
@@ -627,6 +716,96 @@
     background: #b91c1c;
 }
 
+/* ── Toggle Button ── */
+.btn-action.deactivate {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.btn-action.deactivate:hover {
+    background: #fee2e2;
+}
+
+.btn-action.activate {
+    background: #f0fdf4;
+    color: #16a34a;
+}
+
+.btn-action.activate:hover {
+    background: #dcfce7;
+}
+
+/* ── Confirm Modal (jika belum ada) ── */
+.confirm-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    margin: 0 auto 1rem;
+}
+
+.confirm-icon.danger {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 2px solid #fecaca;
+}
+
+.confirm-icon.success {
+    background: #dcfce7;
+    color: #16a34a;
+    border: 2px solid #bbf7d0;
+}
+
+.confirm-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: .5rem;
+}
+
+.confirm-desc {
+    font-size: .82rem;
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+.btn-confirm {
+    display: inline-flex;
+    align-items: center;
+    font-size: .82rem;
+    font-weight: 600;
+    padding: .5rem 1.1rem;
+    border-radius: 9px;
+    border: none;
+    cursor: pointer;
+    transition: all .2s;
+}
+
+.btn-confirm.danger {
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, .3);
+}
+
+.btn-confirm.danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(220, 38, 38, .4);
+}
+
+.btn-confirm.success {
+    background: linear-gradient(135deg, #166534, #16a34a);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(22, 101, 52, .3);
+}
+
+.btn-confirm.success:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(22, 101, 52, .4);
+}
+
 /* =============================================
    DATATABLES — TOP BAR (search kiri, length kanan)
 ============================================= */
@@ -721,13 +900,20 @@ div.dataTables_wrapper div.dataTables_length label {
 div.dataTables_wrapper div.dataTables_length select {
     border: 1px solid #e5e7eb;
     border-radius: 8px;
-    padding: .38rem .65rem;
+    padding: .38rem 2rem .38rem .65rem;
     font-size: .82rem;
     color: #374151;
-    background: #fff;
+    background-color: #fff;
     outline: none;
     cursor: pointer;
     transition: border-color .2s;
+
+    /* Tambahin ini — custom arrow biar konsisten semua browser */
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right .6rem center;
 }
 
 div.dataTables_wrapper div.dataTables_length select:focus {
@@ -760,7 +946,7 @@ div.dataTables_wrapper div.dataTables_paginate .pagination {
     flex-wrap: wrap;
 }
 
-div.dataTables_wrapper div.dataTables_paginate .paginate_button {
+div.dataTables_wrapper div.dataTables_paginate .page-item .page-link {
     border: 1px solid #e5e7eb !important;
     border-radius: 7px !important;
     font-size: .78rem !important;
@@ -774,22 +960,22 @@ div.dataTables_wrapper div.dataTables_paginate .paginate_button {
     transition: all .15s;
 }
 
-div.dataTables_wrapper div.dataTables_paginate .paginate_button:hover {
+div.dataTables_wrapper div.dataTables_paginate .page-item .page-link:hover {
     background: #f0fdf4 !important;
     color: #166534 !important;
     border-color: #bbf7d0 !important;
 }
 
-div.dataTables_wrapper div.dataTables_paginate .paginate_button.current,
-div.dataTables_wrapper div.dataTables_paginate .paginate_button.current:hover {
+div.dataTables_wrapper div.dataTables_paginate .page-item.active .page-link,
+div.dataTables_wrapper div.dataTables_paginate .page-item.active .page-link:hover {
     background: linear-gradient(135deg, #166534, #16a34a) !important;
     color: #fff !important;
     border-color: transparent !important;
     box-shadow: 0 2px 6px rgba(22, 101, 52, .3);
 }
 
-div.dataTables_wrapper div.dataTables_paginate .paginate_button.disabled,
-div.dataTables_wrapper div.dataTables_paginate .paginate_button.disabled:hover {
+div.dataTables_wrapper div.dataTables_paginate .page-item.disabled .page-link,
+div.dataTables_wrapper div.dataTables_paginate .page-item.disabled .page-link:hover {
     background: #f9fafb !important;
     color: #d1d5db !important;
     border-color: #f3f4f6 !important;
@@ -876,9 +1062,9 @@ table.dataTable thead .sorting_desc::after {
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/dataTables.bootstrap5.min.js"></script> -->
 <script>
 $(document).ready(function() {
 
@@ -968,5 +1154,55 @@ $(document).ready(function() {
         }
     });
 });
+
+function konfirmasiToggle(actionUrl, nama, statusSaat) {
+    const isAktif = statusSaat === 'aktif';
+
+    // Set form action
+    document.getElementById('formToggle').action = actionUrl;
+
+    // Set nama
+    document.getElementById('toggleNama').textContent = nama;
+
+    // Set icon modal
+    const icon = document.getElementById('toggleIcon');
+    const iconBi = document.getElementById('toggleIconBi');
+    if (isAktif) {
+        icon.className = 'confirm-icon danger';
+        iconBi.className = 'bi bi-toggle-off';
+    } else {
+        icon.className = 'confirm-icon success';
+        iconBi.className = 'bi bi-toggle-on';
+    }
+
+    // Set title
+    document.getElementById('toggleTitle').textContent =
+        isAktif ? 'Nonaktifkan Personel?' : 'Aktifkan Personel?';
+
+    // Set action text
+    document.getElementById('toggleActionText').textContent =
+        isAktif ? 'dinonaktifkan dari sistem' : 'diaktifkan kembali';
+
+    // Tampilkan warning hanya saat nonaktifkan
+    document.getElementById('toggleWarning').style.display =
+        isAktif ? 'block' : 'none';
+
+    // Set tombol konfirmasi
+    const btn = document.getElementById('toggleBtn');
+    const btnIcon = document.getElementById('toggleBtnIcon');
+    const btnText = document.getElementById('toggleBtnText');
+
+    if (isAktif) {
+        btn.className = 'btn-confirm danger';
+        btnIcon.className = 'bi bi-toggle-off me-1';
+        btnText.textContent = 'Ya, Nonaktifkan';
+    } else {
+        btn.className = 'btn-confirm success';
+        btnIcon.className = 'bi bi-toggle-on me-1';
+        btnText.textContent = 'Ya, Aktifkan';
+    }
+
+    new bootstrap.Modal(document.getElementById('modalToggle')).show();
+}
 </script>
 <?= $this->endSection() ?>

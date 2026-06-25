@@ -5,9 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kartu QR — <?= esc($personel['nama']) ?></title>
-    <link
+    <!-- <link
         href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
-        rel="stylesheet">
+        rel="stylesheet"> -->
+
+    <link rel="stylesheet" href="<?= base_url('vendor/fonts/bebas-neue/bebas-neue.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('vendor/fonts/ibm-plex-mono/ibm-plex-mono.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('vendor/fonts/ibm-plex-sans/ibm-plex-sans.css') ?>">
 
     <style>
     *,

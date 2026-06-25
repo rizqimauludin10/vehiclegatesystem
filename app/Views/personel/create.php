@@ -66,7 +66,7 @@
                                 Pangkat <span class="required">*</span>
                             </label>
 
-                            <select name="pangkat_id" class="form-input" required>
+                            <select name="pangkat_id" id="pangkat_id" class="form-input" required>
                                 <option value="">-- Pilih Pangkat --</option>
 
                                 <?php foreach ($pangkat as $kelompok => $items): ?>
@@ -75,7 +75,7 @@
                                     <option value="<?= $row['id'] ?>"
                                         <?= old('pangkat_id') == $row['id'] ? 'selected' : '' ?>>
                                         <?= esc($row['pangkat_singkat']) ?>
-                                        — <?= esc($row['nama_pangkat']) ?>
+                                        - <?= esc($row['nama_pangkat']) ?>
                                     </option>
                                     <?php endforeach ?>
                                 </optgroup>
@@ -109,13 +109,13 @@
                                 Satuan Kerja <span class="required">*</span>
                             </label>
 
-                            <select name="satker_id" class="form-input" required>
+                            <select name="satker_id" id="satker_id" class="form-input" required>
                                 <option value="">-- Pilih Satuan Kerja --</option>
 
                                 <?php foreach ($satker as $s): ?>
                                 <option value="<?= $s['id'] ?>" <?= old('satker_id') == $s['id'] ? 'selected' : '' ?>>
                                     <?= esc($s['kode_satker']) ?>
-                                    — <?= esc($s['nama_singkat']) ?>
+                                    - <?= esc($s['nama_singkat']) ?>
                                 </option>
                                 <?php endforeach ?>
                             </select>
@@ -336,6 +336,22 @@ select.form-input {
 
 optgroup {
     font-weight: 600;
+}
+
+.choices__inner {
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    padding: 6px 10px;
+    min-height: 42px;
+    font-size: 14px;
+}
+
+.choices__input {
+    font-size: 14px;
+}
+
+.choices[data-type*=select-one] .choices__inner {
+    padding-bottom: 6px;
 }
 </style>
 <?= $this->endSection() ?>

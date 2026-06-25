@@ -11,6 +11,29 @@
     </a>
 </div>
 
+<?php if (session()->getFlashdata('error_qr')): ?>
+<div class="alert-qr mb-4">
+    <div class="alert-qr-icon">
+        <i class="bi bi-qr-code"></i>
+    </div>
+    <div class="alert-qr-body">
+        <div class="alert-qr-title">Tidak Dapat Menghapus Kendaraan</div>
+        <div class="alert-qr-msg">
+            <?= session()->getFlashdata('error_qr') ?>
+        </div>
+    </div>
+    <div class="alert-qr-action">
+        <a href="<?= base_url('admin/qrcode') ?>" class="btn-goto-qr">
+            <i class="bi bi-qr-code me-1"></i>
+            Kelola QR Code
+        </a>
+    </div>
+    <button class="alert-qr-close" onclick="this.parentElement.remove()">
+        <i class="bi bi-x"></i>
+    </button>
+</div>
+<?php endif; ?>
+
 <!-- Summary -->
 <div class="row g-3 mb-4">
     <div class="col-sm-4">
@@ -149,6 +172,15 @@
                                 data-kendaraan="<?= esc($k['merk'] . ' ' . $k['model']) ?>" title="Hapus">
                                 <i class="bi bi-trash"></i>
                             </button>
+
+                            <!-- <form action="<?= base_url('admin/kendaraan/delete/' . $k['uuid']) ?>" method="POST"
+                                class="d-inline"
+                                onsubmit="return confirmHapusKendaraan(this, '<?= esc($k['plat_nomor']) ?>')">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="btn-action delete" title="Hapus">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form> -->
                         </div>
                     </td>
                 </tr>
@@ -221,8 +253,8 @@
 </div>
 <?= $this->endSection() ?>
 <?= $this->section('styles') ?>
-<link rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/css/dataTables.bootstrap5.min.css">
+<!-- <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/css/dataTables.bootstrap5.min.css"> -->
 <style>
 /* =============================================
    BASE PAGE
@@ -681,7 +713,7 @@ div.dataTables_wrapper div.dataTables_paginate .pagination {
     flex-wrap: wrap;
 }
 
-div.dataTables_wrapper div.dataTables_paginate .paginate_button {
+div.dataTables_wrapper div.dataTables_paginate .page-item .page-link {
     border: 1px solid #e5e7eb !important;
     border-radius: 7px !important;
     font-size: .78rem !important;
@@ -695,22 +727,22 @@ div.dataTables_wrapper div.dataTables_paginate .paginate_button {
     transition: all .15s;
 }
 
-div.dataTables_wrapper div.dataTables_paginate .paginate_button:hover {
+div.dataTables_wrapper div.dataTables_paginate .page-item .page-link:hover {
     background: #f0fdf4 !important;
     color: #166534 !important;
     border-color: #bbf7d0 !important;
 }
 
-div.dataTables_wrapper div.dataTables_paginate .paginate_button.current,
-div.dataTables_wrapper div.dataTables_paginate .paginate_button.current:hover {
+div.dataTables_wrapper div.dataTables_paginate .page-item.active .page-link,
+div.dataTables_wrapper div.dataTables_paginate .page-item.active .page-link:hover {
     background: linear-gradient(135deg, #166534, #16a34a) !important;
     color: #fff !important;
     border-color: transparent !important;
     box-shadow: 0 2px 6px rgba(22, 101, 52, .3);
 }
 
-div.dataTables_wrapper div.dataTables_paginate .paginate_button.disabled,
-div.dataTables_wrapper div.dataTables_paginate .paginate_button.disabled:hover {
+div.dataTables_wrapper div.dataTables_paginate .page-item.disabled .page-link,
+div.dataTables_wrapper div.dataTables_paginate .page-item.disabled .page-link:hover {
     background: #f9fafb !important;
     color: #d1d5db !important;
     border-color: #f3f4f6 !important;
@@ -931,12 +963,92 @@ table.dataTable thead .sorting_desc::after {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(22, 101, 52, .35);
 }
+
+/* ── Alert QR ── */
+.alert-qr {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-left: 4px solid #f59e0b;
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    flex-wrap: wrap;
+}
+
+.alert-qr-icon {
+    width: 42px;
+    height: 42px;
+    background: rgba(245, 158, 11, .15);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: #d97706;
+    flex-shrink: 0;
+}
+
+.alert-qr-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.alert-qr-title {
+    font-size: .85rem;
+    font-weight: 600;
+    color: #92400e;
+    margin-bottom: 2px;
+}
+
+.alert-qr-msg {
+    font-size: .78rem;
+    color: #78350f;
+    line-height: 1.5;
+}
+
+.btn-goto-qr {
+    display: inline-flex;
+    align-items: center;
+    background: #f59e0b;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: .45rem .9rem;
+    font-size: .78rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all .15s;
+}
+
+.btn-goto-qr:hover {
+    background: #d97706;
+    color: #fff;
+}
+
+.alert-qr-close {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0;
+    flex-shrink: 0;
+    align-self: flex-start;
+}
+
+.alert-qr-close:hover {
+    color: #374151;
+}
 </style>
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/dataTables.bootstrap5.min.js"></script> -->
+
 <script>
 $(document).ready(function() {
     $('#kendaraanTable').DataTable({

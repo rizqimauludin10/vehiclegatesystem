@@ -3,34 +3,38 @@
 namespace App\Controllers;
 
 use App\Models\QRCodeModel;
-use App\Models\PersonelModel;
 use App\Models\KendaraanModel;
+use App\Models\KendaraanFotoModel;
+use App\Models\PersonelModel;
+
 use chillerlan\QRCode\QRCode as QRGenerator;
 use chillerlan\QRCode\QROptions;
-use Ramsey\Uuid\Uuid;
+use chillerlan\QRCode\Output\QRGdImagePNG;
 
+use Ramsey\Uuid\Uuid;
 
 /**
  * QRCode Controller
  *
- * Handles QR Code generation, printing, and revocation.
- * QR is generated per PERSONEL (not per kendaraan).
- * One personel = one active QR at a time.
- * Regenerating auto-revokes the old QR.
+ * QR Code sekarang per KENDARAAN (bukan per personel)
+ * 1 kendaraan = 1 QR aktif
+ * Regenerate otomatis revoke QR lama
  *
  * Routes prefix: /admin/qrcode
  */
 class QRCode extends BaseController
 {
-    protected QRCodeModel   $qrModel;
-    protected PersonelModel $personelModel;
-    protected KendaraanModel $kendaraanModel;
+    protected QRCodeModel      $qrModel;
+    protected KendaraanModel   $kendaraanModel;
+    protected KendaraanFotoModel $fotoModel;
+    protected PersonelModel    $personelModel;
 
     public function __construct()
     {
         $this->qrModel        = new QRCodeModel();
-        $this->personelModel  = new PersonelModel();
         $this->kendaraanModel = new KendaraanModel();
+        $this->fotoModel      = new KendaraanFotoModel();
+        $this->personelModel  = new PersonelModel();
     }
 
     // ──────────────────────────────────────────────────────────
@@ -39,36 +43,33 @@ class QRCode extends BaseController
     // ──────────────────────────────────────────────────────────
     public function index(): string
     {
-        $personelModel = new PersonelModel();
-
         $data = [
-            'title'             => 'Management QR Code',
-            'qrList'            => $this->qrModel->getAllWithPersonel(),
-            'personelList'      => $personelModel->getAktif(),
-            'totalQrAktif'      => $this->qrModel->countAktif(),
-            'totalPersonel'     => $personelModel->countAktif(),
-            'personelTanpaQR'   => count($this->qrModel->getPersonelTanpaQR()),
+            'title'              => 'Management QR Code',
+            'qrList'             => $this->qrModel->getAllWithDetail(),
+            'kendaraanList'      => $this->kendaraanModel->getAllWithPersonel(),
+            'totalQrAktif'       => $this->qrModel->countAktif(),
+            'totalKendaraan'     => $this->kendaraanModel->countAktif(),
+            'kendaraanTanpaQR'   => count($this->qrModel->getKendaraanTanpaQR()),
         ];
 
         return view('qrcode/index', $data);
     }
 
     // ──────────────────────────────────────────────────────────
-    // GENERATE — Generate QR Baru untuk Personel
-    // POST /admin/qrcode/generate/{personel_uuid}
-    // Otomatis revoke QR lama jika ada
+    // GENERATE — Generate QR Baru untuk Kendaraan
+    // POST /admin/qrcode/generate/{kendaraan_uuid}
     // ──────────────────────────────────────────────────────────
-    public function generate(string $personelUuid)
+    public function generate(string $kendaraanUuid)
     {
-        $personel = $this->personelModel->findByUuid($personelUuid);
+        $kendaraan = $this->kendaraanModel->findByUuid($kendaraanUuid);
 
-        if (!$personel) {
+        if (!$kendaraan) {
             return redirect()->to('/admin/qrcode')
-                             ->with('error', 'Personel tidak ditemukan.');
+                             ->with('error', 'Kendaraan tidak ditemukan.');
         }
 
-        // Revoke semua QR lama milik personel ini
-        $this->qrModel->revokeByPersonel($personel['id']);
+        // Revoke semua QR lama milik kendaraan ini
+        $this->qrModel->revokeByKendaraan($kendaraan['id']);
 
         // Generate kode unik baru
         $kodeUnik = $this->qrModel->generateKodeUnik();
@@ -76,22 +77,89 @@ class QRCode extends BaseController
         // Simpan QR baru
         $this->qrModel->insert([
             'uuid'         => Uuid::uuid4()->toString(),
-            'personel_id'  => $personel['id'],
+            'kendaraan_id' => $kendaraan['id'],
             'kode_unik'    => $kodeUnik,
             'status'       => 'aktif',
             'generated_by' => session()->get('user_id'),
             'generated_at' => date('Y-m-d H:i:s'),
         ]);
 
+        // Ambil info kendaraan untuk pesan sukses
+        $detail = $this->kendaraanModel->getDetailByUuid($kendaraanUuid);
+        $label  = $detail
+            ? "{$detail['plat_nomor']} ({$detail['personel_nama']})"
+            : $kendaraan['plat_nomor'];
+
         return redirect()->to('/admin/qrcode')
-                         ->with('success', "QR Code berhasil di-generate untuk {$personel['nama']}.");
+                        ->with('success', "QR Code berhasil di-generate untuk kendaraan {$label}.");
     }
 
     // ──────────────────────────────────────────────────────────
-    // PRINT CARD — Halaman Cetak Kartu QR
-    // GET /admin/qrcode/print/{qr_uuid}
+// AJAX: Cari kendaraan by plat nomor
+// GET /admin/qrcode/cariKendaraan
+// ──────────────────────────────────────────────────────────
+public function cariKendaraan()
+{
+    if (!$this->request->isAJAX()) {
+        return $this->response->setStatusCode(403)->setJSON(['error' => 'Forbidden']);
+    }
+
+    $plat = strtoupper(trim($this->request->getGet('plat')));
+
+    if (empty($plat)) {
+        return $this->response->setJSON(['found' => false, 'message' => 'Plat nomor tidak boleh kosong.']);
+    }
+
+    $result = $this->kendaraanModel->db->table('kendaraan k')
+        ->select('k.id, k.uuid, k.plat_nomor, k.jenis, k.merk, k.model,
+                  k.warna, k.kendaraan_kode, k.status,
+                  p.nama as personel_nama, p.nrp, p.foto as personel_foto,
+                  pk.pangkat_singkat,
+                  sk.nama_singkat as satker_singkat')
+        ->join('personel p',     'p.id = k.personel_id', 'left')
+        ->join('pangkat pk',     'pk.id = p.pangkat_id', 'left')
+        ->join('satuan_kerja sk', 'sk.id = p.satker_id',  'left')
+        ->where('k.plat_nomor', $plat)
+        ->get()
+        ->getRowArray();
+
+    if (!$result) {
+        return $this->response->setJSON(['found' => false, 'message' => 'Kendaraan dengan plat nomor tersebut tidak ditemukan.']);
+    }
+
+    if ($result['status'] !== 'aktif') {
+        return $this->response->setJSON(['found' => false, 'message' => 'Kendaraan tidak aktif.']);
+    }
+
+    // Cek apakah sudah punya QR aktif
+    $qrAktif = $this->qrModel->findAktifByKendaraan($result['id']);
+
+    return $this->response->setJSON([
+        'found'      => true,
+        'hasQR'      => $qrAktif ? true : false,
+        'kendaraan'  => [
+            'uuid'          => $result['uuid'],
+            'plat_nomor'    => $result['plat_nomor'],
+            'jenis'         => $result['jenis'],
+            'merk'          => $result['merk'] ?? '',
+            'model'         => $result['model'] ?? '',
+            'warna'         => $result['warna'] ?? '',
+            'kendaraan_kode'=> $result['kendaraan_kode'],
+            'personel_nama' => $result['personel_nama'],
+            'pangkat'       => $result['pangkat_singkat'],
+            'nrp'           => $result['nrp'],
+            'foto_personel' => $result['personel_foto']
+                                ? base_url('uploads/personel/' . $result['personel_foto'])
+                                : base_url('assets/img/no-avatar.png'),
+        ],
+    ]);
+}
+
     // ──────────────────────────────────────────────────────────
-    public function printCard(string $qrUuid): string
+    // DOWNLOAD — Download QR Code sebagai PNG
+    // GET /admin/qrcode/download/{qr_uuid}
+    // ──────────────────────────────────────────────────────────
+    public function download(string $qrUuid)
     {
         $qr = $this->qrModel->findByUuid($qrUuid);
 
@@ -100,21 +168,29 @@ class QRCode extends BaseController
                             ->with('error', 'QR Code tidak ditemukan atau sudah tidak aktif.');
         }
 
-        $personel   = $this->personelModel->getWithKendaraan(
-            $this->personelModel->find($qr['personel_id'])['uuid']
+        $kendaraan = $this->kendaraanModel->getDetailByUuid(
+            $this->kendaraanModel->find($qr['kendaraan_id'])['uuid']
         );
 
-        // Generate QR image sebagai base64
-        $qrImage = $this->generateQRImage($qr['kode_unik']);
+        if (!$kendaraan) {
+            return redirect()->to('/admin/qrcode')
+                            ->with('error', 'Data kendaraan tidak ditemukan.');
+        }
 
-        $data = [
-            'title'    => 'Cetak Kartu QR',
-            'qr'       => $qr,
-            'personel' => $personel,
-            'qrImage'  => $qrImage,
-        ];
+        // Generate QR binary PNG langsung
+        $imgData  = $this->generateQRImageBinary($qr['kode_unik'], $kendaraan['plat_nomor'] ?? '');
 
-        return view('qrcode/print', $data);
+        // Nama file: QR_{plat_nomor}_{nama_personel}.png
+        $plat    = preg_replace('/[^A-Za-z0-9]/', '_', $kendaraan['plat_nomor'] ?? 'unknown');
+        $nama    = preg_replace('/[^A-Za-z0-9_]/', '_', $kendaraan['personel_nama'] ?? 'personel');
+        $filename = "QR_{$plat}_{$nama}.png";
+
+        return $this->response
+                    ->setHeader('Content-Type', 'image/png')
+                    ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+                    ->setHeader('Content-Length', strlen($imgData))
+                    ->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+                    ->setBody($imgData);
     }
 
     // ──────────────────────────────────────────────────────────
@@ -137,86 +213,86 @@ class QRCode extends BaseController
     }
 
     // ──────────────────────────────────────────────────────────
-    // PRIVATE — Generate QR Image (Base64 PNG)
+    // PRIVATE — Generate QR Image Base64 (untuk print/tampil)
     // ──────────────────────────────────────────────────────────
     private function generateQRImage(string $kodeUnik): string
     {
         $options = new QROptions;
-        $options->version      = 5;
-        $options->outputType   = 'png';
-        $options->eccLevel     = 'H';
-        $options->scale        = 10;
-        $options->imageBase64  = true;
-        $options->bgColor      = [255, 255, 255];
-        $options->moduleValues = [
-            // finder
-            1536 => [0, 51, 0],
-            6    => [255, 255, 255],
-            // alignment
-            2048 => [0, 51, 0],
-            8    => [255, 255, 255],
-            // timing
-            3072 => [0, 51, 0],
-            12   => [255, 255, 255],
-            // data
-            1024 => [0, 0, 0],
-            4    => [255, 255, 255],
-        ];
+        $options->outputInterface = QRGdImagePNG::class;
+        $options->scale           = 10;
+        $options->outputBase64    = true;  // ← return base64 data URI
+        $options->imageTransparent = false;
+        $options->bgColor         = [255, 255, 255];
 
         return (new QRGenerator($options))->render($kodeUnik);
-    }
-    
-    public function download(string $qrUuid)
-    {
-        $qr = $this->qrModel->findByUuid($qrUuid);
-
-        if (!$qr || $qr['status'] !== 'aktif') {
-            return redirect()->to('/admin/qrcode')
-                ->with('error', 'QR Code tidak ditemukan atau sudah tidak aktif.');
-        }
-
-        $personel = $this->personelModel->find($qr['personel_id']);
-
-        if (!$personel) {
-            return redirect()->to('/admin/qrcode')
-                ->with('error', 'Data personel tidak ditemukan.');
-        }
-
-        // Ambil QR SVG Base64
-        $svgData = $this->generateQRImage($qr['kode_unik']);
-
-        // Pisahkan header dan data base64
-        if (strpos($svgData, ',') !== false) {
-            [, $svgData] = explode(',', $svgData, 2);
-        }
-
-        // Decode menjadi SVG XML asli
-        $svgData = base64_decode($svgData);
-
-        $nrp  = $personel['nrp'] ?? 'unknown';
-        $nama = preg_replace('/[^A-Za-z0-9_]/', '_', $personel['nama'] ?? 'personel');
-
-        $filename = "QR_{$nrp}_{$nama}.svg";
-
-        return $this->response->download(
-            $filename,
-            $svgData
-        );
+        // return: data:image/png;base64,...
     }
 
     // ──────────────────────────────────────────────────────────
-    // Generate QR langsung sebagai binary PNG
-    // Dipakai untuk download agar tidak ada masalah encoding
+    // PRIVATE — Generate QR Binary PNG (untuk download)
     // ──────────────────────────────────────────────────────────
-    private function generateQRImageBinary(string $kodeUnik): string
+
+    private function generateQRImageBinary(string $kodeUnik, string $platNomor = ''): string
     {
         $options = new QROptions;
-        $options->version     = 5;
-        $options->outputType  = 'png';
-        $options->eccLevel    = 'H';
-        $options->scale       = 10;
-        $options->imageBase64 = false; // ← false = raw binary, bukan base64
+        $options->outputInterface  = QRGdImagePNG::class;
+        $options->scale            = 15; // ← perbesar QR (sebelumnya 10)
+        $options->outputBase64     = false;
+        $options->returnResource   = true;
+        $options->imageTransparent = false;
+        $options->bgColor          = [255, 255, 255];
 
-        return (new QRGenerator($options))->render($kodeUnik);
+        /** @var \GdImage $gdImage */
+        $gdImage = (new QRGenerator($options))->render($kodeUnik);
+
+        // Ukuran QR asli
+        $qrWidth  = imagesx($gdImage);
+        $qrHeight = imagesy($gdImage);
+
+        // Padding & tinggi area teks
+        $padding    = 20;
+        $textAreaH  = 50;
+
+        // Canvas baru: lebih lebar (padding kiri-kanan) + tinggi area teks bawah
+        $canvasW = $qrWidth  + ($padding * 2);
+        $canvasH = $qrHeight + ($padding * 2) + $textAreaH;
+
+        $canvas = imagecreatetruecolor($canvasW, $canvasH);
+
+        // Warna
+        $white = imagecolorallocate($canvas, 255, 255, 255);
+        $black = imagecolorallocate($canvas, 0,   0,   0);
+        $gray  = imagecolorallocate($canvas, 100, 100, 100);
+
+        // Background putih
+        imagefill($canvas, 0, 0, $white);
+
+        // Tempel QR di tengah canvas dengan padding
+        imagecopy($canvas, $gdImage, $padding, $padding, 0, 0, $qrWidth, $qrHeight);
+        imagedestroy($gdImage);
+
+        // Tulis teks plat nomor di bawah QR
+        if (!empty($platNomor)) {
+            $fontSize  = 5; // built-in GD font (1-5), 5 = paling besar
+            $fontW     = imagefontwidth($fontSize);
+            $fontH     = imagefontheight($fontSize);
+            $textWidth = strlen($platNomor) * $fontW;
+            $textX     = (int)(($canvasW - $textWidth) / 2); // center
+            $textY     = $qrHeight + $padding + (int)(($textAreaH - $fontH) / 2);
+
+            imagestring($canvas, $fontSize, $textX, $textY, $platNomor, $black);
+
+            // Garis pemisah tipis antara QR dan teks
+            $lineY = $qrHeight + $padding + 8;
+            imageline($canvas, $padding, $lineY, $canvasW - $padding, $lineY, $gray);
+        }
+
+        // Dump ke binary PNG
+        ob_start();
+        imagepng($canvas);
+        $binary = ob_get_clean();
+        imagedestroy($canvas);
+
+        return $binary;
     }
 }

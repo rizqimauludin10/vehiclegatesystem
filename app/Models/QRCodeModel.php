@@ -12,7 +12,7 @@ class QRCodeModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $allowedFields    = [
-        'uuid', 'personel_id', 'kode_unik',
+        'uuid', 'kendaraan_id', 'kode_unik',
         'status', 'generated_by', 'generated_at', 'expired_at'
     ];
 
@@ -25,11 +25,11 @@ class QRCodeModel extends Model
     }
 
     // ──────────────────────────────────────────────────────────
-    // Find QR aktif milik personel
+    // Find QR aktif milik kendaraan
     // ──────────────────────────────────────────────────────────
-    public function findAktifByPersonel(int $personelId): ?array
+    public function findAktifByKendaraan(int $kendaraanId): ?array
     {
-        return $this->where('personel_id', $personelId)
+        return $this->where('kendaraan_id', $kendaraanId)
                     ->where('status', 'aktif')
                     ->first();
     }
@@ -45,67 +45,72 @@ class QRCodeModel extends Model
     }
 
     // ──────────────────────────────────────────────────────────
-    // Nonaktifkan semua QR milik personel
+    // Nonaktifkan semua QR milik kendaraan
     // (dipanggil sebelum generate QR baru)
     // ──────────────────────────────────────────────────────────
-    public function revokeByPersonel(int $personelId): void
+    public function revokeByKendaraan(int $kendaraanId): void
     {
-        $this->where('personel_id', $personelId)
-             ->set(['status' => 'nonaktif'])
-             ->update();
+        $this->where('kendaraan_id', $kendaraanId)
+            ->set(['status' => 'nonaktif'])
+            ->update();
     }
 
     // ──────────────────────────────────────────────────────────
-    // Get semua QR beserta data personel (JOIN)
+    // Get semua QR beserta data kendaraan + personel (JOIN)
     // ──────────────────────────────────────────────────────────
-    // ──────────────────────────────────────────────────────────
-// Get semua QR beserta data personel (JOIN)
-// Sekarang JOIN ke pangkat & satuan_kerja juga
-// ──────────────────────────────────────────────────────────
-    public function getAllWithPersonel(): array
+    public function getAllWithDetail(): array
     {
         return $this->db->table('qrcode q')
                         ->select('
                             q.*,
-                            p.nama        as personel_nama,
+                            k.plat_nomor,
+                            k.jenis,
+                            k.merk,
+                            k.model,
+                            k.warna,
+                            k.kendaraan_kode,
+                            k.status        as kendaraan_status,
+                            k.uuid          as kendaraan_uuid,
+                            p.nama          as personel_nama,
                             p.nrp,
-                            p.foto        as personel_foto,
-                            p.uuid        as personel_uuid,
+                            p.foto          as personel_foto,
+                            p.uuid          as personel_uuid,
                             pk.pangkat_singkat,
-                            pk.nama_pangkat,
-                            sk.nama_singkat as satker_singkat,
-                            sk.kode_satker
+                            sk.nama_singkat as satker_singkat
                         ')
-                        ->join('personel p',     'p.id = q.personel_id', 'left')
-                        ->join('pangkat pk',      'pk.id = p.pangkat_id', 'left')
-                        ->join('satuan_kerja sk', 'sk.id = p.satker_id',  'left')
+                        ->join('kendaraan k',     'k.id = q.kendaraan_id',  'left')
+                        ->join('personel p',      'p.id = k.personel_id',   'left')
+                        ->join('pangkat pk',       'pk.id = p.pangkat_id',   'left')
+                        ->join('satuan_kerja sk',  'sk.id = p.satker_id',    'left')
                         ->orderBy('q.generated_at', 'DESC')
                         ->get()
                         ->getResultArray();
     }
-    
+
     // ──────────────────────────────────────────────────────────
-    // Get semua personel yang BELUM punya QR aktif
+    // Get semua kendaraan yang BELUM punya QR aktif
     // ──────────────────────────────────────────────────────────
-    public function getPersonelTanpaQR(): array
+    public function getKendaraanTanpaQR(): array
     {
-        return $this->db->table('personel p')
+        return $this->db->table('kendaraan k')
                         ->select('
-                            p.*,
+                            k.*,
+                            p.nama          as personel_nama,
+                            p.nrp,
+                            p.uuid          as personel_uuid,
                             pk.pangkat_singkat,
-                            pk.nama_pangkat,
                             sk.nama_singkat as satker_singkat
                         ')
-                        ->join('pangkat pk',      'pk.id = p.pangkat_id', 'left')
-                        ->join('satuan_kerja sk', 'sk.id = p.satker_id',  'left')
-                        ->where('p.status', 'aktif')
-                        ->whereNotIn('p.id', function ($builder) {
-                            return $builder->select('personel_id')
+                        ->join('personel p',      'p.id = k.personel_id',  'left')
+                        ->join('pangkat pk',       'pk.id = p.pangkat_id',  'left')
+                        ->join('satuan_kerja sk',  'sk.id = p.satker_id',   'left')
+                        ->where('k.status', 'aktif')
+                        ->whereNotIn('k.id', function ($builder) {
+                            return $builder->select('kendaraan_id')
                                         ->from('qrcode')
                                         ->where('status', 'aktif');
                         })
-                        ->orderBy('pk.urutan', 'ASC')
-                        ->orderBy('p.nama',    'ASC')
+                        ->orderBy('p.nama', 'ASC')
                         ->get()
                         ->getResultArray();
     }
@@ -123,10 +128,15 @@ class QRCodeModel extends Model
     }
 
     // ──────────────────────────────────────────────────────────
-    // Statistik
+    // Count QR aktif
     // ──────────────────────────────────────────────────────────
     public function countAktif(): int
     {
         return $this->where('status', 'aktif')->countAllResults();
     }
+
+    public function deleteByKendaraan(int $kendaraanId): void
+{
+    $this->where('kendaraan_id', $kendaraanId)->delete();
+}
 }

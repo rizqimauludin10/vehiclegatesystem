@@ -5,10 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gate Monitor — Vehicle Gate System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link
+    <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet"> -->
+    <!-- <link
         href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Exo+2:wght@300;400;600;700;800&display=swap"
-        rel="stylesheet">
+        rel="stylesheet"> -->
+
+    <link rel="stylesheet" href="<?= base_url('vendor/bootstrap-icons/font/bootstrap-icons.min.css') ?>">
+
+    <link rel="stylesheet" href="<?= base_url('vendor/fonts/rajdhani/rajdhani.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('vendor/fonts/jetbrains-mono/jetbrains-mono.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('vendor/fonts/exo-2/exo-2.css') ?>">
 
     <style>
     /* ============================================
@@ -1429,6 +1435,7 @@
         showState('success');
 
         const p = data.personel;
+        const k = data.kendaraan;
 
         // Foto personel
         const foto = document.getElementById('resFoto');
@@ -1443,25 +1450,106 @@
             placeholder.textContent = p.nama.charAt(0).toUpperCase();
         }
 
+        // Identitas personel
         document.getElementById('resNama').textContent = p.nama;
         document.getElementById('resPangkat').textContent = p.pangkat_singkat || '-';
         document.getElementById('resNrp').textContent = p.nrp;
         document.getElementById('resJabatan').textContent = p.jabatan || '-';
         document.getElementById('resSatuan').textContent = p.satker_singkat || '-';
 
+        // Counter
         totalScan++;
         document.getElementById('scanCount').textContent = totalScan;
-        setStatus('idle', 'Akses Diizinkan ✓');
+        setStatus('idle', `OK: ${k.plat_nomor} ✓`);
 
-        buildKendaraanList(data.kendaraan);
+        // Build tampilan kendaraan
+        buildKendaraanDetail(k);
 
-        // Auto reset hanya jika diset
         if (CONFIG.autoResetMs) {
             resetTimer = setTimeout(() => {
                 showState('idle');
                 setStatus('idle', 'Menunggu Scan');
             }, CONFIG.autoResetMs);
         }
+    }
+
+    /* ═══════════════════════════════════════════════════
+   BUILD KENDARAAN DETAIL — 1 kendaraan spesifik
+═══════════════════════════════════════════════════ */
+    function buildKendaraanDetail(k) {
+        const container = document.getElementById('resKendaraanList');
+        const countBadge = document.getElementById('kendaraanCount');
+
+        countBadge.textContent = k.plat_nomor;
+
+        // Thumbnail
+        const thumbHtml = k.thumbnail_url ?
+            `<img src="${escAttr(k.thumbnail_url)}" class="k-thumb" alt=""
+                onclick="openLightbox('${escAttr(k.thumbnail_url)}',
+                'Foto — ${escAttr(k.plat_nomor)}')">` :
+            `<div class="k-thumb-placeholder ${k.jenis}">
+               <i class="bi ${k.jenis === 'motor' ? 'bi-bicycle' : 'bi-car-front'}"></i>
+           </div>`;
+
+        // STNK — Nomor STNK & Tahun
+        const stnkHtml = k.nomor_stnk ? `
+        <div class="stnk-row">
+            <div class="stnk-cell">
+                <div class="stnk-lbl">No. STNK</div>
+                <div class="stnk-val">${escHtml(k.nomor_stnk)}</div>
+            </div>
+            <div class="stnk-cell">
+                <div class="stnk-lbl">Tahun</div>
+                <div class="stnk-val">${k.tahun || '-'}</div>
+            </div>
+        </div>` : '';
+
+        // Foto strip
+        const hasGaleri = k.galeri_urls && k.galeri_urls.length > 0;
+        const hasFotoStnk = !!k.foto_stnk_url;
+        let stripHtml = '';
+        if (hasGaleri || hasFotoStnk) {
+            const imgs = hasGaleri ?
+                k.galeri_urls.map((url, i) => `
+                <img src="${escAttr(url)}" class="strip-img" alt="Foto ${i+1}"
+                     onclick="openLightbox('${escAttr(url)}',
+                     'Foto ${i+1} — ${escAttr(k.plat_nomor)}')">`).join('') :
+                '';
+            const stnkImg = hasFotoStnk ?
+                `<span class="strip-stnk-label">STNK</span>
+               <img src="${escAttr(k.foto_stnk_url)}" class="strip-img stnk-foto"
+                    alt="STNK" onclick="openLightbox('${escAttr(k.foto_stnk_url)}',
+                    'STNK — ${escAttr(k.plat_nomor)}')">` :
+                '';
+            stripHtml = `<div class="foto-strip">${imgs}${stnkImg}</div>`;
+        }
+
+        const detailParts = [k.merk, k.model, k.warna ? `· ${k.warna}` : '']
+            .filter(Boolean).join(' ');
+
+        const statusBadge = k.status === 'aktif' ?
+            `<span class="badge-status-k aktif">● Aktif</span>` :
+            `<span class="badge-status-k dibekukan">⚠ Dibekukan</span>`;
+
+        container.innerHTML = `
+        <div class="kendaraan-item">
+            <div class="kendaraan-item-header">
+                ${thumbHtml}
+                <div class="k-info">
+                    <div class="k-plat">${escHtml(k.plat_nomor)}</div>
+                    <div class="k-detail">${escHtml(detailParts)}</div>
+                    <div class="k-kode">Kode: ${escHtml(k.kendaraan_kode)}</div>
+                </div>
+                <div class="k-badges">
+                    <span class="badge-jenis ${k.jenis}">
+                        ${k.jenis.charAt(0).toUpperCase() + k.jenis.slice(1)}
+                    </span>
+                    ${statusBadge}
+                </div>
+            </div>
+            ${stnkHtml}
+            ${stripHtml}
+        </div>`;
     }
 
     /* ═══════════════════════════════════════════════════

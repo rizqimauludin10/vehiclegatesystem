@@ -74,13 +74,40 @@ class Auth extends BaseController
     private function redirectByRole(): \CodeIgniter\HTTP\RedirectResponse
     {
         $role = session()->get('role');
-        
-        if ($role === 'admin') {
-            return redirect()->to('/admin/dashboard');
-        } elseif ($role === 'petugas') {
-            return redirect()->to('/petugas/dashboard');
-        } else {
-            return redirect()->to('/auth/login');
+
+        if ($role === 'petugas' && $this->isMobileDevice()) {
+            // Petugas login dari HP/tablet → langsung ke mobile scanner
+            return redirect()->to('/petugas/scan/mobile');
         }
+
+        switch ($role) {
+            case 'admin':
+                return redirect()->to('/admin/dashboard');
+            case 'petugas':
+                return redirect()->to('/petugas/dashboard');
+            default:
+                return redirect()->to('/auth/login');
+        }
+    }
+
+    // ── Deteksi Mobile / Tablet ────────────────────────────
+    private function isMobileDevice(): bool
+    {
+        $userAgent = $this->request->getUserAgent();
+
+        // Deteksi berdasarkan User-Agent string
+        $mobileKeywords = [
+            'Mobile', 'Android', 'iPhone', 'iPad',
+            'iPod', 'BlackBerry', 'Windows Phone',
+            'Opera Mini', 'IEMobile', 'Tablet',
+        ];
+
+        foreach ($mobileKeywords as $keyword) {
+            if (stripos($userAgent, $keyword) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

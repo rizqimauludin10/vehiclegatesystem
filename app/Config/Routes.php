@@ -51,8 +51,8 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->get('qrcode/print/(:segment)', 'QRCode::printCard/$1');
     $routes->post('qrcode/revoke/(:segment)', 'QRCode::revoke/$1');
     
-    $routes->get('qrcode/download/(:segment)','QRCode::download/$1'
-);
+    $routes->get('qrcode/download/(:segment)','QRCode::download/$1');
+    $routes->get('qrcode/cariKendaraan', 'QRCode::cariKendaraan');
 
     // Laporan
     $routes->get('laporan', 'Laporan::index');
@@ -87,3 +87,8 @@ $routes->group('petugas', ['filter' => 'role:petugas'], function ($routes) {
     $routes->get('scan/mobile', 'Scan::mobile');
     $routes->get('laporan', 'Laporan::petugasIndex');
 });
+
+// ── PWA Routes ────────────────────────────────────────
+$routes->get('manifest.json',    'Pwa::manifest');
+$routes->get('sw.js',            'Pwa::serviceWorker');
+$routes->get('offline',          'Pwa::offline');

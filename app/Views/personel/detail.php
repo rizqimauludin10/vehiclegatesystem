@@ -44,23 +44,25 @@
                 <?php endif; ?>
             </div>
 
-            <!-- Status QR -->
+            <!-- Status QR — per kendaraan -->
             <div class="qr-status-wrap mt-3">
-                <?php if ($qr): ?>
+                <?php 
+                    $totalQrAktif = count($qrPerKendaraan);
+                    $totalKendaraan = count($personel['kendaraan']);
+                    ?>
+                <?php if ($totalQrAktif > 0): ?>
                 <div class="qr-status-badge has-qr">
-                    <i class="bi bi-qr-code me-1"></i> QR Aktif
+                    <i class="bi bi-qr-code me-1"></i>
+                    <?= $totalQrAktif ?>/<?= $totalKendaraan ?> QR Aktif
                 </div>
-                <a href="<?= base_url('admin/qrcode') ?>" class="qr-link">
-                    Lihat QR Code →
-                </a>
                 <?php else: ?>
                 <div class="qr-status-badge no-qr">
                     <i class="bi bi-qr-code me-1"></i> Belum Ada QR
                 </div>
-                <a href="<?= base_url('admin/qrcode') ?>" class="qr-link">
-                    Generate QR Code →
-                </a>
                 <?php endif; ?>
+                <a href="<?= base_url('admin/qrcode') ?>" class="qr-link">
+                    Kelola QR Code →
+                </a>
             </div>
 
             <!-- Info Detail -->

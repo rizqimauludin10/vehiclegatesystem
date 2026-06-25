@@ -111,8 +111,9 @@ class Personel extends BaseController
         $foto     = $this->request->getFile('foto');
 
         if ($foto && $foto->isValid() && !$foto->hasMoved()) {
-            $fotoName = $foto->getRandomName();
-            $foto->move(FCPATH . 'uploads/personel/', $fotoName);
+            $fotoName = pathinfo($foto->getRandomName(), PATHINFO_FILENAME) . '.jpg';
+            $destPath = FCPATH . 'uploads/personel/' . $fotoName;
+            $this->compressImage($foto->getTempName(), $destPath, 75, 1280);
         }
 
         $this->personelModel->insert([
@@ -132,30 +133,75 @@ class Personel extends BaseController
                         ->with('success', 'Data personel berhasil ditambahkan.');
     }
 
+    private function compressImage(string $sourcePath, string $destPath, int $quality = 75, int $maxWidth = 1280): void
+    {
+        $info = getimagesize($sourcePath);
+        if (!$info) return;
+
+        switch ($info['mime']) {
+            case 'image/jpeg':
+                $image = imagecreatefromjpeg($sourcePath);
+                break;
+            case 'image/png':
+                $image = imagecreatefrompng($sourcePath);
+                break;
+            case 'image/webp':
+                $image = imagecreatefromwebp($sourcePath);
+                break;
+            default:
+                $image = null;
+                break;
+        }
+
+        if (!$image) return;
+
+        [$w, $h] = [$info[0], $info[1]];
+
+        // Resize kalau lebih dari maxWidth
+        if ($w > $maxWidth) {
+            $newH  = (int) ($h * $maxWidth / $w);
+            $resized = imagescale($image, $maxWidth, $newH);
+            imagedestroy($image);
+            $image = $resized;
+        }
+
+        // Selalu save sebagai JPEG (lebih kecil, konsisten)
+        imagejpeg($image, $destPath, $quality);
+        imagedestroy($image);
+    }
+
     // ──────────────────────────────────────────────────────────
     // DETAIL — Detail Personel + Kendaraan
     // GET /admin/personel/detail/{uuid}
     // ──────────────────────────────────────────────────────────
     public function detail(string $uuid): string
-    {
-        $personel = $this->personelModel->getWithKendaraan($uuid);
+{
+    $personel = $this->personelModel->getWithKendaraan($uuid);
 
-        if (!$personel) {
-            return redirect()->to('/admin/personel')
-                            ->with('error', 'Personel tidak ditemukan.');
-        }
-
-        // Cek status QR
-        $qr = $this->qrCodeModel->findAktifByPersonel($personel['id']);
-
-        $data = [
-            'title'    => 'Detail Personel',
-            'personel' => $personel,
-            'qr'       => $qr,
-        ];
-
-        return view('personel/detail', $data);
+    if (!$personel) {
+        return redirect()->to('/admin/personel')
+                        ->with('error', 'Personel tidak ditemukan.');
     }
+
+    // QR sekarang per kendaraan
+    $kendaraanList = $this->kendaraanModel->getByPersonel($personel['id']);
+
+    $qrPerKendaraan = [];
+    foreach ($kendaraanList as $k) {
+        $qr = $this->qrCodeModel->findAktifByKendaraan($k['id']);
+        if ($qr) {
+            $qrPerKendaraan[$k['id']] = $qr;
+        }
+    }
+
+    $data = [
+        'title'          => 'Detail Personel',
+        'personel'       => $personel,
+        'qrPerKendaraan' => $qrPerKendaraan,
+    ];
+
+    return view('personel/detail', $data);
+}
 
     // ──────────────────────────────────────────────────────────
     // EDIT — Form Edit Personel
@@ -257,12 +303,9 @@ class Personel extends BaseController
                 unlink(FCPATH . 'uploads/personel/' . $personel['foto']);
             }
 
-            $fotoName = $foto->getRandomName();
-
-            $foto->move(
-                FCPATH . 'uploads/personel/',
-                $fotoName
-            );
+            $fotoName = pathinfo($foto->getRandomName(), PATHINFO_FILENAME) . '.jpg';
+            $destPath = FCPATH . 'uploads/personel/' . $fotoName;
+            $this->compressImage($foto->getTempName(), $destPath, 75, 1280);
         }
 
         $this->personelModel->update($personel['id'], [

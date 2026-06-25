@@ -96,8 +96,8 @@
 </div>
 <?= $this->endSection() ?>
 <?= $this->section('styles') ?>
-<link rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/css/dataTables.bootstrap5.min.css">
+<!-- <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/css/dataTables.bootstrap5.min.css"> -->
 <style>
 .page-header {
     display: flex;
@@ -452,16 +452,19 @@ div.dataTables_wrapper div.dataTables_length label {
 div.dataTables_wrapper div.dataTables_length select {
     border: 1px solid #e5e7eb;
     border-radius: 8px;
-    padding: .38rem .65rem;
     font-size: .82rem;
     color: #374151;
     outline: none;
     cursor: pointer;
-}
+    padding: .35rem 2rem .35rem .6rem;
+    background-color: #fff;
 
-div.dataTables_wrapper div.dataTables_length select:focus {
-    border-color: #16a34a;
-    box-shadow: 0 0 0 3px rgba(22, 163, 74, .1);
+    /* Custom arrow via SVG */
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right .6rem center;
 }
 
 /* INFO */
@@ -479,39 +482,41 @@ div.dataTables_wrapper div.dataTables_paginate .pagination {
     flex-wrap: wrap;
 }
 
-div.dataTables_wrapper div.dataTables_paginate .paginate_button {
+div.dataTables_wrapper div.dataTables_paginate .page-item .page-link {
     border: 1px solid #e5e7eb !important;
     border-radius: 7px !important;
     font-size: .78rem !important;
     padding: .28rem .62rem !important;
     min-width: 32px;
     text-align: center;
+    line-height: 1.4;
     cursor: pointer;
     color: #374151 !important;
     background: #fff !important;
     transition: all .15s;
 }
 
-div.dataTables_wrapper div.dataTables_paginate .paginate_button:hover {
+div.dataTables_wrapper div.dataTables_paginate .page-item .page-link:hover {
     background: #f0fdf4 !important;
     color: #166534 !important;
     border-color: #bbf7d0 !important;
 }
 
-div.dataTables_wrapper div.dataTables_paginate .paginate_button.current,
-div.dataTables_wrapper div.dataTables_paginate .paginate_button.current:hover {
+div.dataTables_wrapper div.dataTables_paginate .page-item.active .page-link,
+div.dataTables_wrapper div.dataTables_paginate .page-item.active .page-link:hover {
     background: linear-gradient(135deg, #166534, #16a34a) !important;
     color: #fff !important;
     border-color: transparent !important;
     box-shadow: 0 2px 6px rgba(22, 101, 52, .3);
 }
 
-div.dataTables_wrapper div.dataTables_paginate .paginate_button.disabled,
-div.dataTables_wrapper div.dataTables_paginate .paginate_button.disabled:hover {
+div.dataTables_wrapper div.dataTables_paginate .page-item.disabled .page-link,
+div.dataTables_wrapper div.dataTables_paginate .page-item.disabled .page-link:hover {
     background: #f9fafb !important;
     color: #d1d5db !important;
     border-color: #f3f4f6 !important;
     cursor: default;
+    box-shadow: none;
 }
 
 /* SORTING */
@@ -575,9 +580,9 @@ table.dataTable thead .sorting_desc::after {
 </style>
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/dataTables.bootstrap5.min.js"></script> -->
 <script>
 $(document).ready(function() {
 

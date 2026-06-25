@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\KendaraanModel;
 use App\Models\KendaraanFotoModel;
 use App\Models\PersonelModel;
+use App\Models\QRCodeModel;
 use Ramsey\Uuid\Uuid;
 
 class Kendaraan extends BaseController
@@ -12,6 +13,7 @@ class Kendaraan extends BaseController
     protected KendaraanModel     $kendaraanModel;
     protected KendaraanFotoModel $fotoModel;
     protected PersonelModel      $personelModel;
+    protected QRCodeModel        $qrcodeModel;
 
     // Batas maksimal foto galeri per kendaraan
     const MAX_FOTO = 6;
@@ -21,6 +23,7 @@ class Kendaraan extends BaseController
         $this->kendaraanModel = new KendaraanModel();
         $this->fotoModel      = new KendaraanFotoModel();
         $this->personelModel  = new PersonelModel();
+        $this->qrcodeModel  = new QRCodeModel();
     }
 
     // ──────────────────────────────────────────────────────────
@@ -273,19 +276,39 @@ class Kendaraan extends BaseController
                             ->with('error', 'Kendaraan tidak ditemukan.');
         }
 
+        // ── Cek apakah masih ada QR aktif ────────────────────
+        $qrModel = new \App\Models\QRCodeModel();
+        $qrAktif = $qrModel->findAktifByKendaraan($kendaraan['id']);
+
+        if ($qrAktif) {
+            return redirect()->to('/admin/kendaraan')
+                            ->with('error_qr',
+                                "Kendaraan <strong>{$kendaraan['plat_nomor']}</strong> tidak dapat dihapus " .
+                                "karena masih memiliki QR Code aktif. " .
+                                "Nonaktifkan QR Code terlebih dahulu sebelum menghapus kendaraan."
+                            );
+        }
+
+        // ── Hapus QR nonaktif yang terkait ───────────────────
+        $qrModel->deleteByKendaraan($kendaraan['id']); // <-- TAMBAH INI
+
         // Hapus semua foto galeri
         $this->fotoModel->deleteByKendaraan($kendaraan['id']);
 
         // Hapus foto STNK
-        if ($kendaraan['foto_stnk'] && file_exists(FCPATH . 'uploads/kendaraan/' . $kendaraan['foto_stnk'])) {
+        if ($kendaraan['foto_stnk'] &&
+            file_exists(FCPATH . 'uploads/kendaraan/' . $kendaraan['foto_stnk'])) {
             unlink(FCPATH . 'uploads/kendaraan/' . $kendaraan['foto_stnk']);
         }
 
         $this->kendaraanModel->delete($kendaraan['id']);
 
         return redirect()->to('/admin/kendaraan')
-                        ->with('success', 'Kendaraan berhasil dihapus.');
+                        ->with('success', "Kendaraan {$kendaraan['plat_nomor']} berhasil dihapus.");
     }
+
+
+    
 
     // ──────────────────────────────────────────────────────────
     // TOGGLE STATUS
