@@ -6,9 +6,16 @@
         <h5 class="page-header-title">Management QR Code</h5>
         <p class="page-header-sub">Generate & kelola QR Code per kendaraan</p>
     </div>
-    <button class="btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalGenerate">
-        <i class="bi bi-qr-code me-1"></i> Generate QR Baru
-    </button>
+    <div class="d-flex align-items-center gap-2">
+        <!-- Tombol Baru: Download per Satker -->
+        <button class="btn-outline-custom" data-bs-toggle="modal" data-bs-target="#modalDownloadSatker">
+            <i class="bi bi-file-earmark-zip me-1"></i> Download per Satker
+        </button>
+        <!-- Tombol Generate Single -->
+        <button class="btn-primary-custom" data-bs-toggle="modal" data-bs-target="#modalGenerate">
+            <i class="bi bi-qr-code me-1"></i> Generate QR Baru
+        </button>
+    </div>
 </div>
 
 <!-- Summary -->
@@ -112,7 +119,7 @@
                             </span>
                             <?= esc($qr['merk'] ?? '') ?> <?= esc($qr['model'] ?? '') ?>
                         </div>
-                        <div style="font-size:.72rem;color:#9ca3af;">
+                        <div style="font-size:.82rem;color:#9ca3af;">
                             <code class="code-tag"><?= esc($qr['kendaraan_kode'] ?? '-') ?></code>
                         </div>
                     </td>
@@ -143,8 +150,8 @@
                     <!-- Kode QR -->
                     <td>
                         <code class="kode-unik-tag">
-                                <?= substr($qr['kode_unik'], 0, 12) ?>...
-                            </code>
+                            <?= substr($qr['kode_unik'], 0, 12) ?>...
+                        </code>
                     </td>
 
                     <!-- Status -->
@@ -186,7 +193,6 @@
                             </button>
                             <?php else: ?>
                             <!-- Regenerate untuk QR nonaktif -->
-                            <!-- Regenerate untuk QR nonaktif -->
                             <button type="button" class="btn-action regenerate" title="Generate QR Baru"
                                 onclick="konfirmasiRegenerate('<?= base_url('admin/qrcode/generate/' . $qr['kendaraan_uuid']) ?>','<?= esc($qr['plat_nomor']) ?>')">
                                 <i class="bi bi-arrow-clockwise"></i>
@@ -202,7 +208,7 @@
     <?php endif; ?>
 </div>
 
-<!-- Modal Generate QR Baru -->
+<!-- Modal Generate QR Baru (Single) -->
 <div class="modal fade" id="modalGenerate" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content modal-custom">
@@ -289,6 +295,50 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Download QR per Satker (BARU) -->
+<div class="modal fade" id="modalDownloadSatker" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content modal-custom">
+            <div class="modal-header-custom">
+                <div class="modal-title-custom">
+                    <i class="bi bi-file-earmark-zip me-2 text-success"></i>
+                    Download QR Code per Satker
+                </div>
+                <button type="button" class="btn-close-custom" data-bs-dismiss="modal">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <form id="formDownloadSatker" onsubmit="handleDownloadSatker(event)">
+                <div class="modal-body-custom">
+                    <p class="modal-desc">
+                        Pilih satuan kerja untuk mengunduh seluruh QR Code aktif dalam format file <strong>.ZIP</strong>
+                        (sudah otomatis terbagi rapi ke folder masing-masing personel).
+                    </p>
+
+                    <label class="form-label-custom">Satuan Kerja</label>
+                    <select id="selectSatkerDownload" class="form-input" required>
+                        <option value="">-- Pilih Satuan Kerja --</option>
+                        <?php if (!empty($satkerList)): ?>
+                        <?php foreach ($satkerList as $sk): ?>
+                        <option value="<?= $sk['id'] ?>">
+                            <?= esc($sk['nama_singkat']) ?> - <?= esc($sk['nama_panjang']) ?>
+                        </option>
+                        <?php endforeach; ?>
+                        <?php endif; ?>
+                    </select>
+                </div>
+                <div class="modal-footer-custom">
+                    <button type="button" class="btn-cancel" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn-submit" id="btnSubmitDownloadZip">
+                        <i class="bi bi-download me-1"></i> Download ZIP
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Konfirmasi Regenerate -->
 <div class="modal fade" id="modalRegenerate" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-sm">
@@ -350,9 +400,10 @@
         </div>
     </div>
 </div>
+
 <?= $this->endSection() ?>
+
 <?= $this->section('styles') ?>
-<!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/css/dataTables.bootstrap5.min.css"> -->
 <style>
 .page-header {
     display: flex;
@@ -394,6 +445,29 @@
 .btn-primary-custom:hover {
     transform: translateY(-1px);
     color: #fff
+}
+
+/* Tombol Outline Custom (BARU) */
+.btn-outline-custom {
+    display: inline-flex;
+    align-items: center;
+    background: #fff;
+    color: #166534;
+    font-size: .82rem;
+    font-weight: 500;
+    padding: .48rem .95rem;
+    border-radius: 9px;
+    text-decoration: none;
+    border: 1px solid #86efac;
+    cursor: pointer;
+    transition: all .2s;
+}
+
+.btn-outline-custom:hover {
+    background: #f0fdf4;
+    border-color: #16a34a;
+    color: #15803d;
+    transform: translateY(-1px);
 }
 
 .summary-card {
@@ -904,13 +978,10 @@ table.dataTable.no-footer {
     border-bottom: none !important;
 }
 
-/* Sembunyikan search bawaan DataTables
-       karena kita punya search + filter sendiri di header */
 div.dataTables_wrapper div.dataTables_filter {
     display: none;
 }
 
-/* ── DataTables Layout ── */
 .dt-top-wrap {
     padding: .75rem 1.25rem;
     border-bottom: 1px solid #f3f4f6;
@@ -929,7 +1000,6 @@ div.dataTables_wrapper div.dataTables_filter {
     gap: 8px;
 }
 
-/* ── DataTables Override ── */
 div.dataTables_wrapper div.dataTables_length label,
 div.dataTables_wrapper div.dataTables_info {
     font-size: .78rem;
@@ -948,7 +1018,6 @@ div.dataTables_wrapper div.dataTables_length select {
 
 div.dataTables_wrapper div.dataTables_filter {
     display: none;
-    /* pakai search custom sendiri */
 }
 
 div.dataTables_wrapper div.dataTables_paginate .page-item .page-link {
@@ -988,7 +1057,6 @@ div.dataTables_wrapper div.dataTables_paginate .page-item.disabled .page-link:ho
     box-shadow: none;
 }
 
-
 table.dataTable thead th {
     border-bottom: 1px solid #f3f4f6 !important;
 }
@@ -998,10 +1066,8 @@ table.dataTable.no-footer {
 }
 </style>
 <?= $this->endSection() ?>
+
 <?= $this->section('scripts') ?>
-<!-- <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/dataTables.bootstrap5.min.js"></script> -->
 <script>
 const CARI_KENDARAAN_URL = '<?= base_url('admin/qrcode/cariKendaraan') ?>';
 
@@ -1029,22 +1095,21 @@ $(document).ready(function() {
         lengthMenu: [10, 25, 50, 100],
         order: [
             [5, 'desc']
-        ], // default sort: generated_at DESC
+        ],
         responsive: true,
         dom: '<"dt-top-wrap"l>rt<"dt-bottom-wrap"ip>',
         columnDefs: [{
                 orderable: false,
                 searchable: false,
                 targets: [0]
-            }, // #
+            },
             {
                 orderable: false,
                 searchable: false,
                 targets: [6]
-            }, // aksi
+            },
         ],
 
-        // ── Penomoran berurutan per halaman ──────────────
         drawCallback: function() {
             const api = this.api();
             const start = api.page.info().start;
@@ -1062,7 +1127,6 @@ $(document).ready(function() {
     });
 
     // ── Filter Status ────────────────────────────────────
-    // Pakai custom search function berdasarkan data-status di <tr>
     $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
         const val = document.getElementById('filterStatus').value;
         if (!val) return true;
@@ -1076,6 +1140,35 @@ $(document).ready(function() {
 
 });
 <?php endif; ?>
+
+/* ════════════════════════════════════════
+   MODAL DOWNLOAD ZIP PER SATKER (BARU)
+════════════════════════════════════════ */
+function handleDownloadSatker(e) {
+    e.preventDefault();
+    const satkerId = document.getElementById('selectSatkerDownload').value;
+    if (!satkerId) return;
+
+    const btnSubmit = document.getElementById('btnSubmitDownloadZip');
+    const originalText = btnSubmit.innerHTML;
+
+    // Ubah text tombol ke loading state
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML =
+        `<i class="bi bi-arrow-repeat me-1" style="animation:spin .7s linear infinite;display:inline-block;"></i> Menyiapkan ZIP...`;
+
+    // Download file
+    window.location.href = "<?= base_url('admin/qrcode/download-satker') ?>/" + satkerId;
+
+    // Reset tombol dan tutup modal setelah jeda singkat
+    setTimeout(() => {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = originalText;
+        const modalEl = document.getElementById('modalDownloadSatker');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+    }, 1500);
+}
 
 /* ════════════════════════════════════════
    MODAL GENERATE — Cari Kendaraan by Plat

@@ -1305,6 +1305,105 @@
     }
 
     /* ════════════════════════════════════════
+   GALERI FOTO KENDARAAN
+════════════════════════════════════════ */
+    .k-galeri-section {
+        border-top: 1px solid var(--border);
+    }
+
+    .k-galeri-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 16px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        color: var(--text-muted);
+    }
+
+    .k-galeri-count {
+        margin-left: auto;
+        background: rgba(56, 189, 248, .12);
+        color: var(--accent);
+        font-size: 10px;
+        font-weight: 600;
+        padding: 1px 8px;
+        border-radius: 99px;
+        border: 1px solid rgba(56, 189, 248, .2);
+        text-transform: none;
+        letter-spacing: 0;
+    }
+
+    .k-galeri-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        padding: 0 16px 12px;
+    }
+
+    .galeri-item {
+        position: relative;
+        aspect-ratio: 4/3;
+        border-radius: 9px;
+        overflow: hidden;
+        border: 1.5px solid var(--border-md);
+        cursor: pointer;
+        transition: all .15s;
+        background: rgba(0, 0, 0, .3);
+    }
+
+    .galeri-item:active {
+        transform: scale(.96);
+        opacity: .85;
+    }
+
+    .galeri-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .galeri-item-label {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(transparent, rgba(0, 0, 0, .75));
+        color: #fff;
+        font-size: 9px;
+        font-weight: 600;
+        padding: 10px 6px 5px;
+        text-align: center;
+        letter-spacing: .03em;
+        line-height: 1.2;
+    }
+
+    /* STNK item — gold border */
+    .galeri-item-stnk {
+        border-color: rgba(251, 191, 36, .4);
+    }
+
+    .galeri-item-stnk img {
+        object-fit: contain;
+        background: rgba(0, 0, 0, .2);
+    }
+
+    .stnk-label {
+        background: linear-gradient(transparent, rgba(180, 120, 0, .8));
+        color: #fef08a;
+    }
+
+    /* Landscape: 4 kolom */
+    @media (orientation: landscape) {
+        .k-galeri-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    /* ════════════════════════════════════════
     LANDSCAPE MODE — 2 kolom
     Kiri: foto personel + identitas
     Kanan: detail kendaraan
@@ -1566,6 +1665,17 @@
                     <div class="badge-ok">
                         <i class="bi bi-check-circle-fill"></i> AKSES OK
                     </div>
+                </div>
+                <!-- WA Button Mobile -->
+                <div id="resWaMobile" style="display:none;padding:10px 16px;
+     background:rgba(34,197,94,.08);border-bottom:1px solid rgba(34,197,94,.2);">
+                    <a id="resWaMobileBtn" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;
+              gap:8px;background:#22c55e;color:#fff;border-radius:12px;
+              padding:12px;font-size:14px;font-weight:600;
+              text-decoration:none;letter-spacing:.02em;">
+                        <i class="bi bi-whatsapp" style="font-size:16px;"></i>
+                        Hubungi via WhatsApp
+                    </a>
                 </div>
 
                 <!-- KOLOM KANAN ROW 2: Header Kendaraan -->
@@ -1898,6 +2008,22 @@
             </div>`;
         }
 
+        // WA Button Mobile
+        const waMobile = document.getElementById('resWaMobile');
+        const waMobileBtn = document.getElementById('resWaMobileBtn');
+
+        if (p.no_hp) {
+            const pesan = encodeURIComponent(
+                `Halo, ini petugas pos jaga.\n` +
+                `Kendaraan Anda plat *${k.plat_nomor}* melintas pada ${data.scan_time}.\n` +
+                `Mohon konfirmasi.`
+            );
+            waMobileBtn.href = `https://wa.me/${p.no_hp}?text=${pesan}`;
+            waMobile.style.display = 'block';
+        } else {
+            waMobile.style.display = 'none';
+        }
+
         // ── Info bawah foto ──
         document.getElementById('resNrp').textContent = 'NRP: ' + (p.nrp || '-');
         document.getElementById('resMeta').textContent = [p.jabatan, p.satker_singkat].filter(Boolean).join(' · ') ||
@@ -1929,21 +2055,90 @@
 
         countBadge.textContent = k.plat_nomor;
 
-        // Foto utama besar
+        // ── Foto utama besar ──
         const thumbHtml = k.thumbnail_url ?
             `<img src="${escAttr(k.thumbnail_url)}" class="k-thumb-besar" alt=""
-               onclick="openLightbox('${escAttr(k.thumbnail_url)}','Foto — ${escAttr(k.plat_nomor)}')">` :
+               onclick="openLightbox('${escAttr(k.thumbnail_url)}',
+               'Foto Utama — ${escAttr(k.plat_nomor)}')">` :
             `<div class="k-thumb-besar-placeholder ${k.jenis}">
                <i class="bi ${k.jenis === 'motor' ? 'bi-bicycle' : 'bi-car-front'}"></i>
            </div>`;
 
+        // ── Badge status ──
         const statusBadge = k.status === 'aktif' ?
             `<span class="badge-status-k aktif">● Aktif</span>` :
             `<span class="badge-status-k dibekukan">⚠ Dibekukan</span>`;
 
+        // ── Galeri foto kendaraan ──
+        const hasGaleri = k.galeri_urls && k.galeri_urls.length > 0;
+        const hasFotoStnk = !!k.foto_stnk_url;
+
+        let galeriHtml = '';
+        if (hasGaleri || hasFotoStnk) {
+            const fotoLabels = [
+                'Tampak Depan', 'Tampak Samping Kiri',
+                'Tampak Samping Kanan', 'Tampak Belakang',
+                'Tampak Atas', 'Lainnya'
+            ];
+
+            const galeriItems = hasGaleri ?
+                k.galeri_urls.map((url, i) => `
+                <div class="galeri-item" onclick="openLightbox('${escAttr(url)}',
+                     '${escHtml(fotoLabels[i] || 'Foto ' + (i+1))} — ${escAttr(k.plat_nomor)}')">
+                    <img src="${escAttr(url)}" alt="Foto ${i+1}">
+                    <div class="galeri-item-label">
+                        ${escHtml(fotoLabels[i] || 'Foto ' + (i+1))}
+                    </div>
+                </div>`).join('') :
+                '';
+
+            const stnkItem = hasFotoStnk ? `
+            <div class="galeri-item galeri-item-stnk"
+                 onclick="openLightbox('${escAttr(k.foto_stnk_url)}',
+                 'Foto STNK — ${escAttr(k.plat_nomor)}')">
+                <img src="${escAttr(k.foto_stnk_url)}" alt="STNK">
+                <div class="galeri-item-label stnk-label">
+                    <i class="bi bi-file-earmark-text"></i> STNK
+                </div>
+            </div>` : '';
+
+            galeriHtml = `
+            <div class="k-galeri-section">
+                <div class="k-galeri-header">
+                    <i class="bi bi-images me-1"></i>
+                    Foto Kendaraan
+                    <span class="k-galeri-count">
+                        ${k.galeri_urls ? k.galeri_urls.length : 0} foto
+                        ${hasFotoStnk ? '+ STNK' : ''}
+                    </span>
+                </div>
+                <div class="k-galeri-grid">
+                    ${galeriItems}
+                    ${stnkItem}
+                </div>
+            </div>`;
+        }
+
+        // ── STNK data ──
+        const stnkHtml = k.nomor_stnk ? `
+        <div class="k-stnk">
+            <div class="k-stnk-cell">
+                <div class="k-stnk-label">No. STNK</div>
+                <div class="k-stnk-val">${escHtml(k.nomor_stnk)}</div>
+            </div>
+            <div class="k-stnk-cell">
+                <div class="k-stnk-label">Tahun</div>
+                <div class="k-stnk-val">${k.tahun || '-'}</div>
+            </div>
+        </div>` : '';
+
         container.innerHTML = `
         <div class="kendaraan-item">
+
+            <!-- Foto Utama -->
             ${thumbHtml}
+
+            <!-- Plat & Badge -->
             <div class="k-plat-besar">${escHtml(k.plat_nomor)}</div>
             <div class="k-badges-row">
                 <span class="badge-jenis ${k.jenis}">
@@ -1951,17 +2146,29 @@
                 </span>
                 ${statusBadge}
             </div>
+
+            <!-- Detail Grid -->
             <div class="k-detail-grid">
                 <div class="k-detail-cell">
                     <div class="k-detail-label">Merk / Model</div>
-                    <div class="k-detail-val">${escHtml((k.merk||'-') + ' ' + (k.model||''))}</div>
+                    <div class="k-detail-val" style="font-size:13px;">
+                        ${escHtml((k.merk || '-') + ' ' + (k.model || ''))}
+                    </div>
                 </div>
                 <div class="k-detail-cell">
-                    <div class="k-detail-label">Warna / Tahun</div>
-                    <div class="k-detail-val">${escHtml(k.warna || '-') + ' / ' + (k.tahun || '-')}</div>
+                    <div class="k-detail-label">Warna</div>
+                    <div class="k-detail-val" style="font-size:13px;">
+                        ${escHtml(k.warna || '-')}
+                    </div>
                 </div>
-                
             </div>
+
+            <!-- STNK -->
+            ${stnkHtml}
+
+            <!-- Galeri Foto -->
+            ${galeriHtml}
+
         </div>`;
     }
 

@@ -104,6 +104,14 @@
                             <i class="bi bi-check-circle-fill"></i>
                             Teridentifikasi
                         </div>
+
+                        <!-- Tambah di dalam #stateSuccess, setelah .result-badge-ok -->
+                        <div id="resWaWrap" class="result-wa-wrap d-none">
+                            <a id="resWaBtn" href="#" target="_blank" class="btn-wa">
+                                <i class="bi bi-whatsapp"></i>
+                                Hubungi via WhatsApp
+                            </a>
+                        </div>
                     </div>
 
                     <!-- Divider -->
@@ -215,6 +223,37 @@
 .btn-fullscreen:hover {
     background: #1f2937;
     color: #fff
+}
+
+.result-wa-wrap {
+    padding: .6rem 1.25rem;
+    background: #f0fdf4;
+    border-bottom: 1px solid #bbf7d0;
+}
+
+.btn-wa {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #22c55e;
+    color: #fff;
+    border-radius: 9px;
+    padding: .5rem 1.1rem;
+    font-size: .82rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all .2s;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, .3);
+}
+
+.btn-wa:hover {
+    background: #16a34a;
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.btn-wa i {
+    font-size: 1rem;
 }
 
 /* Scanner Card */
@@ -983,6 +1022,22 @@ function showResultSuccess(data) {
     document.getElementById('resJabatan').textContent = p.jabatan || '';
     document.getElementById('resSatuan').textContent = p.satker_singkat || '';
 
+    // ── Tombol WhatsApp ──────────────────────────────────
+    const waWrap = document.getElementById('resWaWrap');
+    const waBtn = document.getElementById('resWaBtn');
+
+    if (p.no_hp) {
+        const pesan = encodeURIComponent(
+            `Halo, ini petugas jaga.\n` +
+            `Kendaraan Anda dengan plat *${data.kendaraan.plat_nomor}* ` +
+            `baru saja melintas di penjagaan pada ${data.scan_time}.\n` +
+            `Mohon konfirmasi. Terima kasih.`
+        );
+        waBtn.href = `https://wa.me/${p.no_hp}?text=${pesan}`;
+        waWrap.classList.remove('d-none');
+    } else {
+        waWrap.classList.add('d-none');
+    }
     // Meta
     document.getElementById('resScanTime').textContent = data.scan_time;
     document.getElementById('resPetugas').textContent = data.petugas;

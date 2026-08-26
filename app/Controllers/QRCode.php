@@ -43,16 +43,88 @@ class QRCode extends BaseController
     // ──────────────────────────────────────────────────────────
     public function index(): string
     {
+        $db = \Config\Database::connect();
+        
         $data = [
             'title'              => 'Management QR Code',
             'qrList'             => $this->qrModel->getAllWithDetail(),
             'kendaraanList'      => $this->kendaraanModel->getAllWithPersonel(),
+            'satkerList'         => $db->table('satuan_kerja')->orderBy('nama_singkat', 'ASC')->get()->getResultArray(),
             'totalQrAktif'       => $this->qrModel->countAktif(),
             'totalKendaraan'     => $this->kendaraanModel->countAktif(),
             'kendaraanTanpaQR'   => count($this->qrModel->getKendaraanTanpaQR()),
         ];
 
         return view('qrcode/index', $data);
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // DOWNLOAD ZIP — Download Semua QR Satker (Auto Generate jika belum ada)
+    // GET /admin/qrcode/download-satker/{satker_id}
+    // ──────────────────────────────────────────────────────────
+    public function downloadZipBySatker(int $satkerId)
+    {
+        $db = \Config\Database::connect();
+        $satker = $db->table('satuan_kerja')->where('id', $satkerId)->get()->getRowArray();
+        if (!$satker) {
+            return redirect()->to('/admin/qrcode')->with('error', 'Satuan kerja tidak ditemukan.');
+        }
+        // Ambil semua kendaraan aktif milik satker ini
+        $kendaraanList = $this->qrModel->getKendaraanWithQrBySatker($satkerId);
+        if (empty($kendaraanList)) {
+            return redirect()->to('/admin/qrcode')->with('error', "Tidak ada data kendaraan aktif pada satker {$satker['nama_singkat']}.");
+        }
+        // Siapkan nama file zip & temporary file
+        $satkerNameClean = preg_replace('/[^A-Za-z0-9_\-]/', '_', $satker['nama_singkat']);
+        $zipFileName     = "QR_Satker_{$satkerNameClean}_" . date('Ymd_His') . ".zip";
+        $tempZipPath     = WRITEPATH . 'uploads/temp_' . uniqid() . '.zip';
+        if (!is_dir(WRITEPATH . 'uploads')) {
+            mkdir(WRITEPATH . 'uploads', 0777, true);
+        }
+        $zip = new \ZipArchive();
+        if ($zip->open($tempZipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== TRUE) {
+            return redirect()->to('/admin/qrcode')->with('error', 'Gagal membuat file ZIP di server.');
+        }
+        $userId = session()->get('user_id');
+        // Loop setiap kendaraan
+        foreach ($kendaraanList as $row) {
+            $kodeUnik = $row['kode_unik'];
+            // JIKA BELUM PUNYA QR AKTIF → OTOMATIS GENERATE & SIMPAN KE DATABASE
+            if (empty($kodeUnik) || empty($row['qr_id'])) {
+                $kodeUnik = $this->qrModel->generateKodeUnik();
+                
+                $this->qrModel->insert([
+                    'uuid'         => Uuid::uuid4()->toString(),
+                    'kendaraan_id' => $row['kendaraan_id'],
+                    'kode_unik'    => $kodeUnik,
+                    'status'       => 'aktif',
+                    'generated_by' => $userId,
+                    'generated_at' => date('Y-m-d H:i:s'),
+                ]);
+            }
+            // Format nama folder: "[NRP] - [Nama Personel]"
+            $nrpClean  = !empty($row['nrp']) ? preg_replace('/[^A-Za-z0-9_\-]/', '', $row['nrp']) : 'NON-NRP';
+            $namaClean = preg_replace('/[^A-Za-z0-9_\- ]/', '', $row['personel_nama']);
+            $folderPersonel = trim("{$nrpClean} - {$namaClean}");
+            // Format nama file: "QR_[PLAT_NOMOR].png"
+            $platClean = preg_replace('/[^A-Za-z0-9_\-]/', '_', $row['plat_nomor'] ?? 'UNKNOWN');
+            $fileName  = "QR_{$platClean}.png";
+            // Buat gambar QR Code binary
+            $imgBinary = $this->generateQRImageBinary($kodeUnik, $row['plat_nomor'] ?? '');
+            // Masukkan ke folder personel di dalam ZIP
+            $zip->addFromString("{$folderPersonel}/{$fileName}", $imgBinary);
+        }
+        $zip->close();
+        // Baca file ZIP lalu hapus file temp di server
+        $zipContent = file_get_contents($tempZipPath);
+        @unlink($tempZipPath);
+        // Download langsung
+        return $this->response
+                    ->setHeader('Content-Type', 'application/zip')
+                    ->setHeader('Content-Disposition', 'attachment; filename="' . $zipFileName . '"')
+                    ->setHeader('Content-Length', strlen($zipContent))
+                    ->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+                    ->setBody($zipContent);
     }
 
     // ──────────────────────────────────────────────────────────
@@ -273,19 +345,46 @@ public function cariKendaraan()
 
         // Tulis teks plat nomor di bawah QR
         if (!empty($platNomor)) {
-            $fontSize  = 5; // built-in GD font (1-5), 5 = paling besar
-            $fontW     = imagefontwidth($fontSize);
-            $fontH     = imagefontheight($fontSize);
-            $textWidth = strlen($platNomor) * $fontW;
-            $textX     = (int)(($canvasW - $textWidth) / 2); // center
-            $textY     = $qrHeight + $padding + (int)(($textAreaH - $fontH) / 2);
 
-            imagestring($canvas, $fontSize, $textX, $textY, $platNomor, $black);
+            $font = FCPATH . 'vendor/fonts/inter/files/inter-latin-700-normal.woff'; // lokasi font
 
-            // Garis pemisah tipis antara QR dan teks
+            $fontSize = 26; // bebas, bisa 18,20,22,24,30 dst
+
+            // Garis pemisah
             $lineY = $qrHeight + $padding + 8;
             imageline($canvas, $padding, $lineY, $canvasW - $padding, $lineY, $gray);
+
+            // Area untuk teks
+            $areaTop    = $lineY;
+            $areaBottom = $canvasH - $padding;
+            $areaHeight = $areaBottom - $areaTop;
+
+            // Hitung bounding box teks
+            $bbox = imagettfbbox($fontSize, 0, $font, $platNomor);
+
+            $textWidth  = $bbox[2] - $bbox[0];
+            $textHeight = abs($bbox[7] - $bbox[1]);
+
+            // Posisi horizontal (center)
+            $textX = ($canvasW - $textWidth) / 2;
+
+            // Posisi vertikal (benar-benar di tengah area)
+            $textY = $areaTop + (($areaHeight - $textHeight) / 2) + $textHeight;
+
+            // Tulis teks
+            imagettftext(
+                $canvas,
+                $fontSize,
+                0,
+                (int)$textX,
+                (int)$textY,
+                $black,
+                $font,
+                $platNomor
+            );
         }
+
+        
 
         // Dump ke binary PNG
         ob_start();

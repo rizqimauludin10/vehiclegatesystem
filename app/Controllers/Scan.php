@@ -186,6 +186,7 @@ class Scan extends BaseController
                 'jabatan'        => $personel['jabatan']         ?? '',
                 'satker_singkat' => $personel['satker_singkat']  ?? '',
                 'satker_panjang' => $personel['satker_panjang']  ?? '',
+                'no_hp'           => $personel['no_hp']           ?? null,
                 'foto'           => !empty($personel['foto'])
                     ? base_url('uploads/personel/' . $personel['foto'])
                     : null,

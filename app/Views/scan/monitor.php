@@ -1176,6 +1176,14 @@
                                     <span class="detail-label">Satuan</span>
                                     <span class="detail-value" id="resSatuan">-</span>
                                 </div>
+                                <!-- Setelah detail-row satuan -->
+                                <a id="resWaMonitor" href="#" target="_blank" style="display:none;align-items:center;justify-content:center;
+          gap:6px;background:#22c55e;color:#fff;border-radius:999px;
+          padding:clamp(5px,.8vh,9px) clamp(10px,1.3vw,18px);
+          font-size:var(--fs-sm);font-weight:700;text-decoration:none;
+          margin:0 clamp(10px,1.5vw,18px);letter-spacing:.03em;">
+                                    <i class="bi bi-whatsapp"></i> Hubungi via WA
+                                </a>
                             </div>
                             <div class="access-badge">
                                 <i class="bi bi-check-circle-fill"></i>
@@ -1457,6 +1465,23 @@
         document.getElementById('resJabatan').textContent = p.jabatan || '-';
         document.getElementById('resSatuan').textContent = p.satker_singkat || '-';
 
+        // Tambah di buildKendaraanDetail atau showSuccess di monitor.php
+        // Setelah set resJabatan & resSatuan
+
+        // WA Button di monitor
+        const waMonitor = document.getElementById('resWaMonitor');
+        if (waMonitor) {
+            if (p.no_hp) {
+                const pesan = encodeURIComponent(
+                    `Halo, petugas pos jaga.\nKendaraan ${data.kendaraan.plat_nomor} melintas pada ${data.scan_time}.`
+                );
+                waMonitor.href = `https://wa.me/${p.no_hp}?text=${pesan}`;
+                waMonitor.style.display = 'flex';
+            } else {
+                waMonitor.style.display = 'none';
+            }
+        }
+
         // Counter
         totalScan++;
         document.getElementById('scanCount').textContent = totalScan;
@@ -1503,6 +1528,7 @@
                 <div class="stnk-val">${k.tahun || '-'}</div>
             </div>
         </div>` : '';
+
 
         // Foto strip
         const hasGaleri = k.galeri_urls && k.galeri_urls.length > 0;
@@ -1614,9 +1640,9 @@
                 const stnkImg = hasFotoStnk ? `
                 <span class="strip-stnk-label">STNK</span>
                 <img src="${escAttr(k.foto_stnk_url)}"
-                     class="strip-img stnk-foto" alt="STNK"
-                     onclick="openLightbox('${escAttr(k.foto_stnk_url)}',
-                     'Foto STNK — ${escAttr(k.plat_nomor)}')">` : '';
+                    class="strip-img stnk-foto" alt="STNK"
+                    onclick="openLightbox('${escAttr(k.foto_stnk_url)}',
+                    'Foto STNK — ${escAttr(k.plat_nomor)}')">` : '';
                 stripHtml = `<div class="foto-strip">${galeriImgs}${stnkImg}</div>`;
             }
 
@@ -1667,7 +1693,7 @@
     }
 
     /* ═══════════════════════════════════════════════════
-       LIGHTBOX
+    LIGHTBOX
     ═══════════════════════════════════════════════════ */
     function openLightbox(url, caption) {
         closeLightbox();
@@ -1679,7 +1705,7 @@
             <i class="bi bi-x"></i>
         </button>
         <img src="${escAttr(url)}" class="lightbox-img"
-             alt="${escAttr(caption)}" onclick="event.stopPropagation()">
+            alt="${escAttr(caption)}" onclick="event.stopPropagation()">
         <div class="lightbox-caption">${escHtml(caption)}</div>`;
         el.addEventListener('click', closeLightbox);
         document.body.appendChild(el);
@@ -1698,7 +1724,7 @@
     }
 
     /* ═══════════════════════════════════════════════════
-       SECURITY HELPERS — Prevent XSS
+    SECURITY HELPERS — Prevent XSS
     ═══════════════════════════════════════════════════ */
     function escHtml(str) {
         if (!str) return '';
@@ -1713,7 +1739,7 @@
     }
 
     /* ═══════════════════════════════════════════════════
-       INIT
+    INIT
     ═══════════════════════════════════════════════════ */
     showState('idle');
     focusScanner();

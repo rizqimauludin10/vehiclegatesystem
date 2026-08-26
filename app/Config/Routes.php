@@ -12,6 +12,7 @@ $routes->get('auth/logout', 'Auth::logout');
 // ─── Admin Routes ─────────────────────────────────────────
 $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->get('dashboard', 'Dashboard::index');
+    $routes->get('dashboard/export-satker', 'Dashboard::exportSatkerExcel');
 
     // User Management
     $routes->get('users', 'UserManagement::index');
@@ -43,11 +44,17 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->post('kendaraan/delete/(:segment)', 'Kendaraan::delete/$1');
     $routes->post('kendaraan/deletefoto/(:segment)', 'Kendaraan::deleteFoto/$1');
 
+    $routes->get('kendaraan/import', 'Kendaraan::import');
+    $routes->post('kendaraan/prosesImport', 'Kendaraan::prosesImport');
+    $routes->get('kendaraan/templateExcel', 'Kendaraan::templateExcel');
+
     $routes->get('kendaraan/cariPersonel', 'Kendaraan::cariPersonel');
 
     // QR Code
     $routes->get('qrcode', 'QRCode::index');
     $routes->post('qrcode/generate/(:segment)', 'QRCode::generate/$1');
+    
+    $routes->get('qrcode/download-satker/(:num)', 'QRCode::downloadZipBySatker/$1');
     $routes->get('qrcode/print/(:segment)', 'QRCode::printCard/$1');
     $routes->post('qrcode/revoke/(:segment)', 'QRCode::revoke/$1');
     

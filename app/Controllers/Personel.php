@@ -116,6 +116,22 @@ class Personel extends BaseController
             $this->compressImage($foto->getTempName(), $destPath, 75, 1280);
         }
 
+        // Helper format nomor WA — simpan dalam format 62xxxxxxxxx
+        $noHpRaw = trim($this->request->getPost('no_hp'));
+        $noHp    = null;
+
+        if (!empty($noHpRaw)) {
+            // Hapus semua karakter non-digit
+            $noHp = preg_replace('/\D/', '', $noHpRaw);
+
+            // Normalisasi: 0xxx → 62xxx, sudah 62xxx → tetap
+            if (str_starts_with($noHp, '0')) {
+                $noHp = '62' . substr($noHp, 1);
+            } elseif (!str_starts_with($noHp, '62')) {
+                $noHp = '62' . $noHp;
+            }
+        }
+        
         $this->personelModel->insert([
             'uuid'       => Uuid::uuid4()->toString(),
             'nrp'        => strtoupper(trim($this->request->getPost('nrp'))),
@@ -123,6 +139,7 @@ class Personel extends BaseController
             'pangkat_id' => (int) $this->request->getPost('pangkat_id'),
             'satker_id'  => (int) $this->request->getPost('satker_id'),
             'jabatan'    => trim($this->request->getPost('jabatan')),
+            'no_hp'      => $noHp,
             'foto'       => $fotoName,
             'status'     => 'aktif',
             'created_at' => date('Y-m-d H:i:s'),
@@ -308,12 +325,29 @@ class Personel extends BaseController
             $this->compressImage($foto->getTempName(), $destPath, 75, 1280);
         }
 
+        // Helper format nomor WA — simpan dalam format 62xxxxxxxxx
+        $noHpRaw = trim($this->request->getPost('no_hp'));
+        $noHp    = null;
+
+        if (!empty($noHpRaw)) {
+            // Hapus semua karakter non-digit
+            $noHp = preg_replace('/\D/', '', $noHpRaw);
+
+            // Normalisasi: 0xxx → 62xxx, sudah 62xxx → tetap
+            if (str_starts_with($noHp, '0')) {
+                $noHp = '62' . substr($noHp, 1);
+            } elseif (!str_starts_with($noHp, '62')) {
+                $noHp = '62' . $noHp;
+            }
+        }
+
         $this->personelModel->update($personel['id'], [
             'nrp'        => strtoupper(trim($this->request->getPost('nrp'))),
             'nama'       => trim($this->request->getPost('nama')),
             'pangkat_id' => (int) $this->request->getPost('pangkat_id'),
             'satker_id'  => (int) $this->request->getPost('satker_id'),
             'jabatan'    => trim($this->request->getPost('jabatan')),
+            'no_hp'      => $noHp,
             'foto'       => $fotoName,
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
@@ -470,13 +504,14 @@ class Personel extends BaseController
         foreach ($rows as $index => $row) {
             if ($index === 0) continue; // skip header
 
-            // Kolom: A=NRP, B=Nama, C=Pangkat, D=Jabatan, E=Satker, F=Status
+            // Kolom: A=NRP, B=Nama, C=Pangkat, D=Jabatan, E=Satker, F=No Hp, G=Status
             $nrp     = strtoupper(trim($row[0] ?? ''));
             $nama    = trim($row[1] ?? '');
             $pangkat = strtolower(trim($row[2] ?? ''));
             $jabatan = trim($row[3] ?? '');
             $satker  = strtolower(trim($row[4] ?? ''));
-            $status  = strtolower(trim($row[5] ?? 'aktif'));
+            $noHp    = strtolower(trim($row[5] ?? ''));
+            $status  = strtolower(trim($row[6] ?? 'aktif'));
 
             $rowNum = $index + 1;
 
@@ -540,6 +575,7 @@ class Personel extends BaseController
                     'jabatan'    => $jabatan ?: null,
                     'foto'       => null,
                     'status'     => $status,
+                    'no_hp'      => $noHp ?: null,
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ]);
@@ -571,7 +607,7 @@ class Personel extends BaseController
         $sheet->setTitle('Data Personel');
 
         // Header
-        $headers = ['NRP', 'Nama', 'Pangkat', 'Jabatan', 'Satker', 'Status'];
+        $headers = ['NRP', 'Nama', 'Pangkat', 'Jabatan', 'Satker','No Hp', 'Status'];
         foreach ($headers as $col => $header) {
             $cell = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col + 1) . '1';
             $sheet->setCellValue($cell, $header);
@@ -584,8 +620,8 @@ class Personel extends BaseController
 
         // Contoh data
         $contoh = [
-            ['1234567890', 'Budi Santoso', 'Lettu', 'Komandan Regu', 'KOARMADA', 'aktif'],
-            ['0987654321', 'Agus Setiawan', 'Serda', 'Anggota', 'LANAL', 'aktif'],
+            ['1234567890', 'Budi Santoso', 'Lettu', 'Komandan Regu', 'KOARMADA', '08123456789', 'aktif'],
+            ['0987654321', 'Agus Setiawan', 'Serda', 'Anggota', 'LANAL', '08987654321', 'aktif'],
         ];
         foreach ($contoh as $i => $row) {
             foreach ($row as $col => $val) {
@@ -595,7 +631,7 @@ class Personel extends BaseController
         }
 
         // Auto width kolom
-        foreach (range(1, 6) as $col) {
+        foreach (range(1, 7) as $col) {
             $sheet->getColumnDimensionByColumn($col)->setAutoSize(true);
         }
 

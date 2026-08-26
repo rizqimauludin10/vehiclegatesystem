@@ -631,24 +631,37 @@ $(document).ready(function() {
     const modal = document.getElementById('deleteModal');
     const deleteMessage = document.getElementById('deleteMessage');
 
-    document.querySelectorAll('.btn-delete').forEach(button => {
-        button.addEventListener('click', function() {
-            selectedForm = this.closest('.delete-form');
-            const nama = selectedForm.dataset.nama;
-            const kode = selectedForm.dataset.kode;
+    document.addEventListener('click', function(e) {
 
-            deleteMessage.innerHTML = `
-                Apakah Anda yakin ingin menghapus satker berikut?
-                <div style="margin-top:12px;padding:12px;border-radius:10px;background:#f9fafb;border:1px solid #e5e7eb;">
-                    <div style="font-weight:600;color:#111827;">${nama}</div>
-                    <div style="font-size:.85rem;color:#6b7280;margin-top:4px;">Kode: ${kode}</div>
-                </div>
-                <div style="margin-top:12px;color:#dc2626;font-size:.82rem;">
-                    Tindakan ini tidak dapat dibatalkan.
-                </div>
-            `;
-            modal.classList.add('show');
-        });
+        const button = e.target.closest('.btn-delete');
+
+        if (!button) return;
+
+        selectedForm = button.closest('.delete-form');
+
+        const nama = selectedForm.dataset.nama;
+        const kode = selectedForm.dataset.kode;
+
+        deleteMessage.innerHTML = `
+        Apakah Anda yakin ingin menghapus satker berikut?
+
+        <div style="margin-top:12px;padding:12px;border-radius:10px;background:#f9fafb;border:1px solid #e5e7eb;">
+            <div style="font-weight:600;color:#111827;">
+                ${nama}
+            </div>
+
+            <div style="font-size:.85rem;color:#6b7280;margin-top:4px;">
+                Kode: ${kode}
+            </div>
+        </div>
+
+        <div style="margin-top:12px;color:#dc2626;font-size:.82rem;">
+            Tindakan ini tidak dapat dibatalkan.
+        </div>
+    `;
+
+        modal.classList.add('show');
+
     });
 
     document.getElementById('cancelDelete').addEventListener('click', () => {

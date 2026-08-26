@@ -115,6 +115,44 @@ class QRCodeModel extends Model
                         ->getResultArray();
     }
 
+        // ──────────────────────────────────────────────────────────
+    // Get SEMUA KENDARAAN aktif di Satker (beserta QR jika sudah ada)
+    // ──────────────────────────────────────────────────────────
+    public function getKendaraanWithQrBySatker(int $satkerId): array
+    {
+        return $this->db->table('kendaraan k')
+                        ->select('
+                            k.id as kendaraan_id,
+                            k.uuid as kendaraan_uuid,
+                            k.plat_nomor,
+                            k.kendaraan_kode,
+                            k.jenis,
+                            k.merk,
+                            k.model,
+                            p.id as personel_id,
+                            p.nama as personel_nama,
+                            p.nrp,
+                            pk.pangkat_singkat,
+                            sk.nama_singkat as satker_singkat,
+                            sk.nama_panjang as satker_panjang,
+                            q.id as qr_id,
+                            q.kode_unik,
+                            q.status as qr_status
+                        ')
+                        ->join('personel p',      'p.id = k.personel_id', 'inner')
+                        ->join('satuan_kerja sk', 'sk.id = p.satker_id',  'inner')
+                        ->join('pangkat pk',      'pk.id = p.pangkat_id', 'left')
+                        // LEFT JOIN ke qrcode aktif: jika belum ada, q.id & q.kode_unik akan NULL
+                        ->join('qrcode q',        'q.kendaraan_id = k.id AND q.status = "aktif"', 'left')
+                        ->where('p.satker_id', $satkerId)
+                        ->where('k.status', 'aktif')
+                        ->where('p.status', 'aktif')
+                        ->orderBy('p.nama', 'ASC')
+                        ->orderBy('k.plat_nomor', 'ASC')
+                        ->get()
+                        ->getResultArray();
+    }
+
     // ──────────────────────────────────────────────────────────
     // Generate kode unik yang benar-benar unik di DB
     // ──────────────────────────────────────────────────────────

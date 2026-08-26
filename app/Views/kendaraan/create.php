@@ -140,7 +140,7 @@
                         <div class="form-group">
                             <label class="form-label-custom">Tahun</label>
                             <input type="number" name="tahun_kendaraan" class="form-input"
-                                placeholder="<?= date('Y') ?>" min="1990" max="<?= date('Y') ?>"
+                                placeholder="<?= date('Y') ?>" min="1950" max="<?= date('Y') ?>"
                                 value="<?= old('tahun_kendaraan') ?>">
                         </div>
                     </div>

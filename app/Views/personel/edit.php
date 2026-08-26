@@ -106,6 +106,27 @@
                                 value="<?= old('jabatan', $personel['jabatan']) ?>">
                         </div>
                     </div>
+
+                    <!-- No HP -->
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label-custom">
+                                No. HP / WhatsApp
+                                <span class="hint-tag ms-1">Opsional</span>
+                            </label>
+                            <div class="input-wa-wrap">
+                                <span class="input-wa-prefix">
+                                    <i class="bi bi-whatsapp"></i> +62
+                                </span>
+                                <input type="text" name="no_hp" class="form-input input-wa" placeholder="81234567890"
+                                    value="<?= old('no_hp', ltrim($personel['no_hp'] ?? '', '0+62')) ?>" maxlength="15">
+                            </div>
+                            <div class="form-hint">
+                                Masukkan nomor tanpa awalan 0 atau +62
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="col-md-6">
                         <div class="form-group">
                             <label class="form-label-custom">
@@ -289,6 +310,52 @@
     padding: 1.25rem;
     border-top: 1px solid #f3f4f6;
     margin-top: 1rem
+}
+
+.input-wa-wrap {
+    display: flex;
+    align-items: center;
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+    overflow: hidden;
+    transition: all .15s;
+}
+
+.input-wa-wrap:focus-within {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, .1);
+}
+
+.input-wa-prefix {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: .6rem .85rem;
+    background: #f0fdf4;
+    color: #16a34a;
+    font-size: .82rem;
+    font-weight: 600;
+    border-right: 1px solid #e5e7eb;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.input-wa {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    flex: 1;
+}
+
+.input-wa:focus {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.form-hint {
+    font-size: .72rem;
+    color: #9ca3af;
+    margin-top: 3px;
 }
 
 .btn-cancel {

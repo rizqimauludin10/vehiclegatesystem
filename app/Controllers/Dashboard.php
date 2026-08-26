@@ -8,9 +8,18 @@ use App\Models\LogKeluarModel;
 use App\Models\QrCodeModel;
 use App\Models\PangkatModel;
 use App\Models\UserModel;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 
 class Dashboard extends BaseController
 {
+    public function __construct()
+{
+    $this->db = \Config\Database::connect(); // ← tambah ini
+}
     // ── Admin Dashboard ────────────────────────────────────
     public function index()
     {
@@ -88,7 +97,194 @@ class Dashboard extends BaseController
 
         $data['chart_pangkat'] = $chartPangkat;
 
+        // ── Data per Satuan Kerja ────────────────────────────
+        $dataSatker = $this->db->table('satuan_kerja sk')
+            ->select('
+                sk.kode_satker,
+                sk.nama_singkat,
+                sk.nama_panjang,
+                COUNT(DISTINCT p.id)  as total_personel,
+                COUNT(DISTINCT k.id)  as total_kendaraan,
+                COUNT(DISTINCT q.id)  as total_qr_aktif
+            ')
+            ->join('personel p',  'p.satker_id = sk.id AND p.status = "aktif"',  'left')
+            ->join('kendaraan k', 'k.personel_id = p.id AND k.status = "aktif"', 'left')
+            ->join('qrcode q',    'q.kendaraan_id = k.id AND q.status = "aktif"','left')
+            ->groupBy('sk.id')
+            ->orderBy('total_personel', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        $data['data_satker'] = $dataSatker;
+
+        // ── Metrik Monitoring Input Data Satker (BARU) ───────
+        $totalSatker        = count($dataSatker);
+        $satkerSudahInput   = count(array_filter($dataSatker, function($s) {
+            return (int)$s['total_personel'] > 0 || (int)$s['total_kendaraan'] > 0;
+        }));
+        $satkerBelumInput   = $totalSatker - $satkerSudahInput;
+        $pctSatkerAktif     = $totalSatker > 0 ? round(($satkerSudahInput / $totalSatker) * 100) : 0;
+        $data['monitoring_input'] = [
+            'total_satker'       => $totalSatker,
+            'satker_sudah_input' => $satkerSudahInput,
+            'satker_belum_input' => $satkerBelumInput,
+            'persentase_aktif'   => $pctSatkerAktif,
+        ];
+
+
         return view('dashboard/admin', $data);
+    }
+
+        // ──────────────────────────────────────────────────────────
+    // EXPORT REKAP SATKER KE EXCEL (UNTUK PIMPINAN)
+    // GET /admin/dashboard/export-satker
+    // ──────────────────────────────────────────────────────────
+    public function exportSatkerExcel()
+    {
+        // Ambil data satker yang sama persis dengan dashboard
+        $dataSatker = $this->db->table('satuan_kerja sk')
+            ->select('
+                sk.id,
+                sk.kode_satker,
+                sk.nama_singkat,
+                sk.nama_panjang,
+                (SELECT COUNT(*) FROM personel p WHERE p.satker_id = sk.id AND p.status = "aktif") as total_personel,
+                (SELECT COUNT(*) FROM kendaraan k JOIN personel p2 ON p2.id = k.personel_id WHERE p2.satker_id = sk.id AND k.status = "aktif" AND p2.status = "aktif") as total_kendaraan,
+                (SELECT COUNT(*) FROM qrcode q JOIN kendaraan k2 ON k2.id = q.kendaraan_id JOIN personel p3 ON p3.id = k2.personel_id WHERE p3.satker_id = sk.id AND q.status = "aktif" AND k2.status = "aktif" AND p3.status = "aktif") as total_qr_aktif
+            ')
+            ->orderBy('total_personel', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Rekap Satker');
+
+        // Judul Laporan
+        $sheet->setCellValue('A1', 'REKAPITULASI DATA PER SATUAN KERJA');
+        $sheet->setCellValue('A2', 'Dicetak pada: ' . date('d F Y, H:i') . ' WIB oleh ' . session()->get('user_nama'));
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(9)->getColor()->setRGB('6B7280');
+
+        // Header Tabel di Baris 4
+        $headers = [
+            'A4' => 'No',
+            'B4' => 'Satuan Kerja',
+            'C4' => 'Nama Panjang',
+            'D4' => 'Kode',
+            'E4' => 'Personel',
+            'F4' => 'Kendaraan',
+            'G4' => 'QR Aktif',
+            'H4' => 'Coverage QR (%)',
+            'I4' => 'Status Input',
+        ];
+
+        foreach ($headers as $cell => $val) {
+            $sheet->setCellValue($cell, $val);
+        }
+
+        // Style Header
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '16A34A'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical'   => Alignment::VERTICAL_CENTER,
+            ],
+        ];
+        $sheet->getStyle('A4:I4')->applyFromArray($headerStyle);
+        $sheet->getRowDimension(4)->setRowHeight(24);
+
+        // Isi Data
+        $rowNum = 5;
+        $totalPersonelAll  = 0;
+        $totalKendaraanAll = 0;
+        $totalQrAll        = 0;
+
+        foreach ($dataSatker as $i => $s) {
+            $personel  = (int) $s['total_personel'];
+            $kendaraan = (int) $s['total_kendaraan'];
+            $qrAktif   = (int) $s['total_qr_aktif'];
+            $coverage  = $kendaraan > 0 ? round(($qrAktif / $kendaraan) * 100) : 0;
+            $status    = ($personel > 0 || $kendaraan > 0) ? 'Sudah Input' : 'Belum Ada Data';
+
+            $totalPersonelAll  += $personel;
+            $totalKendaraanAll += $kendaraan;
+            $totalQrAll        += $qrAktif;
+
+            $sheet->setCellValue("A{$rowNum}", $i + 1);
+            $sheet->setCellValue("B{$rowNum}", $s['nama_singkat']);
+            $sheet->setCellValue("C{$rowNum}", $s['nama_panjang']);
+            $sheet->setCellValue("D{$rowNum}", $s['kode_satker']);
+            $sheet->setCellValue("E{$rowNum}", $personel);
+            $sheet->setCellValue("F{$rowNum}", $kendaraan);
+            $sheet->setCellValue("G{$rowNum}", $qrAktif);
+            $sheet->setCellValue("H{$rowNum}", $coverage . '%');
+            $sheet->setCellValue("I{$rowNum}", $status);
+
+            // Alignment center untuk kolom angka & status
+            $sheet->getStyle("A{$rowNum}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("D{$rowNum}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("E{$rowNum}:H{$rowNum}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("I{$rowNum}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            $rowNum++;
+        }
+
+        // Baris Total
+        $sheet->setCellValue("A{$rowNum}", 'TOTAL KESELURUHAN');
+        $sheet->mergeCells("A{$rowNum}:D{$rowNum}");
+        $sheet->setCellValue("E{$rowNum}", $totalPersonelAll);
+        $sheet->setCellValue("F{$rowNum}", $totalKendaraanAll);
+        $sheet->setCellValue("G{$rowNum}", $totalQrAll);
+        $sheet->setCellValue("H{$rowNum}", ($totalKendaraanAll > 0 ? round(($totalQrAll / $totalKendaraanAll) * 100) : 0) . '%');
+        $sheet->setCellValue("I{$rowNum}", '-');
+
+        // Style Baris Total
+        $totalStyle = [
+            'font' => ['bold' => true],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'F1F5F9'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+            ],
+        ];
+        $sheet->getStyle("A{$rowNum}:I{$rowNum}")->applyFromArray($totalStyle);
+        $sheet->getStyle("A{$rowNum}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+
+        // Border seluruh tabel
+        $borderStyle = [
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => 'CBD5E1'],
+                ],
+            ],
+        ];
+        $sheet->getStyle("A4:I{$rowNum}")->applyFromArray($borderStyle);
+
+        // Auto-width kolom
+        foreach (range('A', 'I') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $fileName = 'Rekap_Data_Satker_' . date('Ymd_His') . '.xlsx';
+        $writer   = new Xlsx($spreadsheet);
+
+        ob_start();
+        $writer->save('php://output');
+        $fileData = ob_get_clean();
+
+        return $this->response
+                    ->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                    ->setHeader('Content-Disposition', 'attachment; filename="' . $fileName . '"')
+                    ->setHeader('Cache-Control', 'max-age=0')
+                    ->setBody($fileData);
     }
 
     public function petugasIndex(): string

@@ -6,9 +6,15 @@
         <h5 class="page-header-title">Management Kendaraan</h5>
         <p class="page-header-sub">Kelola semua kendaraan personel yang terdaftar</p>
     </div>
-    <a href="<?= base_url('admin/kendaraan/create') ?>" class="btn-primary-custom">
-        <i class="bi bi-plus-lg me-1"></i> Tambah Kendaraan
-    </a>
+    <div class="d-flex align-items-center gap-2">
+        <!-- Link langsung ke halaman import -->
+        <a href="<?= base_url('admin/kendaraan/import') ?>" class="btn-secondary-custom">
+            <i class="bi bi-file-earmark-excel me-1"></i> Import Excel
+        </a>
+        <a href="<?= base_url('admin/kendaraan/create') ?>" class="btn-primary-custom">
+            <i class="bi bi-plus-lg me-1"></i> Tambah Kendaraan
+        </a>
+    </div>
 </div>
 
 <?php if (session()->getFlashdata('error_qr')): ?>
@@ -299,6 +305,34 @@
 .btn-primary-custom:hover {
     transform: translateY(-1px);
     color: #fff;
+}
+
+.btn-secondary-custom {
+    display: inline-flex;
+    align-items: center;
+
+    padding: .5rem 1rem;
+
+    border-radius: 9px;
+
+    font-size: .82rem;
+    font-weight: 500;
+
+    text-decoration: none;
+
+    background: #fff;
+
+    border: 1px solid #d1d5db;
+
+    color: #374151;
+
+    transition: all .2s ease;
+}
+
+.btn-secondary-custom:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+    color: #111827;
 }
 
 /* =============================================

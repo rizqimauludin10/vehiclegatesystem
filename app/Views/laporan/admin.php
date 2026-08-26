@@ -597,6 +597,121 @@
     opacity: .4
 }
 
+/* =============================================
+   DATATABLES LAYOUT — TOP & BOTTOM BARS
+   .dt-top-wrap   = length + search
+   .dt-bottom-wrap = info + pagination
+============================================= */
+
+/* Top bar: search kiri, length kanan — sejajar, rapi */
+div.dataTables_wrapper div.dt-top-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .75rem;
+    padding: 1rem 0 .75rem;
+    border-bottom: 1px solid #f3f4f6;
+    margin-bottom: .25rem;
+}
+
+/* Bottom bar: info kiri, pagination kanan */
+div.dataTables_wrapper div.dt-bottom-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .75rem;
+    padding: .85rem 0 .25rem;
+    border-top: 1px solid #f3f4f6;
+    margin-top: .25rem;
+}
+
+/* =============================================
+   SEARCH INPUT
+============================================= */
+div.dataTables_wrapper div.dataTables_filter {
+    order: 1;
+    /* kiri */
+}
+
+div.dataTables_wrapper div.dataTables_filter label {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: .8rem;
+    color: #6b7280;
+    margin: 0;
+    font-weight: 500;
+}
+
+div.dataTables_wrapper div.dataTables_filter label::before {
+    /* ikon kaca pembesar via unicode */
+    content: '\1F50D';
+    font-size: .85rem;
+    line-height: 1;
+}
+
+div.dataTables_wrapper div.dataTables_filter input {
+    width: 220px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: .4rem .75rem;
+    font-size: .82rem;
+    color: #374151;
+    background: #fff;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    margin-left: 0 !important;
+}
+
+div.dataTables_wrapper div.dataTables_filter input:focus {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, .1);
+}
+
+div.dataTables_wrapper div.dataTables_filter input::placeholder {
+    color: #9ca3af;
+}
+
+/* =============================================
+   LENGTH SELECT
+============================================= */
+div.dataTables_wrapper div.dataTables_length {
+    order: 2;
+    /* kanan */
+}
+
+div.dataTables_wrapper div.dataTables_length label {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: .8rem;
+    color: #6b7280;
+    margin: 0;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+div.dataTables_wrapper div.dataTables_length select {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: .38rem .65rem;
+    font-size: .82rem;
+    color: #374151;
+    background: #fff;
+    outline: none;
+    cursor: pointer;
+    transition: border-color .2s;
+    /* hapus appearance bawaan browser supaya konsisten */
+    -webkit-appearance: auto;
+}
+
+div.dataTables_wrapper div.dataTables_length select:focus {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, .1);
+}
+
 /* DataTables override */
 div.dataTables_wrapper div.dataTables_length select,
 div.dataTables_wrapper div.dataTables_filter input {

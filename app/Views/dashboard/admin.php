@@ -76,6 +76,61 @@
     </div>
 </div>
 
+<!-- Row 3: Info Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="info-card">
+            <div class="info-card-icon" style="background:rgba(22,163,74,.1);color:#16a34a;">
+                <i class="bi bi-qr-code"></i>
+            </div>
+            <div class="info-card-val"><?= $total_qr_aktif ?></div>
+            <div class="info-card-label">QR Aktif</div>
+            <a href="<?= base_url('admin/qrcode') ?>" class="info-card-link">
+                Kelola <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="info-card <?= $kendaraan_tanpa_qr > 0 ? 'warning' : '' ?>">
+            <div class="info-card-icon" style="background:rgba(245,158,11,.1);color:#d97706;">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div class="info-card-val"><?= $kendaraan_tanpa_qr ?></div>
+            <div class="info-card-label">Kendaraan Tanpa QR</div>
+            <a href="<?= base_url('admin/qrcode') ?>" class="info-card-link">
+                Generate <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="info-card">
+            <div class="info-card-icon" style="background:rgba(99,102,241,.1);color:#6366f1;">
+                <i class="bi bi-calendar-check"></i>
+            </div>
+            <div class="info-card-val"><?= $log_bulan_ini ?></div>
+            <div class="info-card-label">Scan Bulan Ini</div>
+            <a href="<?= base_url('admin/laporan') ?>" class="info-card-link">
+                Laporan <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="info-card">
+            <div class="info-card-icon" style="background:rgba(59,130,246,.1);color:#3b82f6;">
+                <i class="bi bi-award"></i>
+            </div>
+            <div class="info-card-val"><?= $total_pangkat ?></div>
+            <div class="info-card-label">Data Pangkat</div>
+            <a href="<?= base_url('admin/pangkat') ?>" class="info-card-link">
+                Kelola <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
 <!-- Row 1: Chart Harian + Chart Shift -->
 <div class="row g-3 mb-3">
     <div class="col-lg-8">
@@ -171,60 +226,213 @@
     </div>
 </div>
 
-<!-- Row 3: Info Cards -->
-<div class="row g-3">
-    <div class="col-sm-6 col-xl-3">
-        <div class="info-card">
-            <div class="info-card-icon" style="background:rgba(22,163,74,.1);color:#16a34a;">
-                <i class="bi bi-qr-code"></i>
+<!-- Section: Data per Satuan Kerja -->
+<!-- Section: Data per Satuan Kerja & Monitoring Input -->
+<div class="row g-3 mt-1 mb-4">
+
+    <!-- 1. Card Mini Monitoring Progres Input Satker -->
+    <?php if (isset($monitoring_input)): ?>
+    <div class="col-12">
+        <div class="progress-summary-card">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="progress-radial-icon">
+                        <i class="bi bi-pie-chart-fill"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold text-dark fs-6">Progres Kesiapan Input Data Satker</div>
+                        <div class="text-muted small">
+                            <strong><?= $monitoring_input['satker_sudah_input'] ?></strong> dari
+                            <strong><?= $monitoring_input['total_satker'] ?></strong> satuan kerja telah menginputkan
+                            data.
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="stat-pill success">
+                        <span class="dot"></span>
+                        <span>Sudah Input: <strong><?= $monitoring_input['satker_sudah_input'] ?> Satker</strong></span>
+                    </div>
+                    <div class="stat-pill danger">
+                        <span class="dot"></span>
+                        <span>Belum Ada Data: <strong><?= $monitoring_input['satker_belum_input'] ?>
+                                Satker</strong></span>
+                    </div>
+                    <div class="badge-pct">
+                        <?= $monitoring_input['persentase_aktif'] ?>%
+                    </div>
+                </div>
             </div>
-            <div class="info-card-val"><?= $total_qr_aktif ?></div>
-            <div class="info-card-label">QR Aktif</div>
-            <a href="<?= base_url('admin/qrcode') ?>" class="info-card-link">
-                Kelola <i class="bi bi-arrow-right"></i>
-            </a>
+            <!-- Progress Bar -->
+            <div class="progress mt-3" style="height: 7px; background:#e2e8f0; border-radius: 99px;">
+                <div class="progress-bar bg-success" role="progressbar"
+                    style="width: <?= $monitoring_input['persentase_aktif'] ?>%; border-radius: 99px;"></div>
+            </div>
         </div>
     </div>
+    <?php endif; ?>
 
-    <div class="col-sm-6 col-xl-3">
-        <div class="info-card <?= $kendaraan_tanpa_qr > 0 ? 'warning' : '' ?>">
-            <div class="info-card-icon" style="background:rgba(245,158,11,.1);color:#d97706;">
-                <i class="bi bi-exclamation-triangle"></i>
-            </div>
-            <div class="info-card-val"><?= $kendaraan_tanpa_qr ?></div>
-            <div class="info-card-label">Kendaraan Tanpa QR</div>
-            <a href="<?= base_url('admin/qrcode') ?>" class="info-card-link">
-                Generate <i class="bi bi-arrow-right"></i>
-            </a>
-        </div>
-    </div>
+    <!-- 2. Tabel Rekap Satker + Filter + Tombol Export -->
+    <div class="col-12">
+        <div class="chart-card">
+            <div class="chart-card-header flex-wrap gap-2">
+                <div>
+                    <div class="chart-card-title">
+                        <i class="bi bi-building me-2 text-success"></i>
+                        Rekap Data per Satuan Kerja
+                    </div>
+                    <div class="chart-card-sub">
+                        Jumlah personel & kendaraan terdaftar per satker
+                    </div>
+                </div>
 
-    <div class="col-sm-6 col-xl-3">
-        <div class="info-card">
-            <div class="info-card-icon" style="background:rgba(99,102,241,.1);color:#6366f1;">
-                <i class="bi bi-calendar-check"></i>
-            </div>
-            <div class="info-card-val"><?= $log_bulan_ini ?></div>
-            <div class="info-card-label">Scan Bulan Ini</div>
-            <a href="<?= base_url('admin/laporan') ?>" class="info-card-link">
-                Laporan <i class="bi bi-arrow-right"></i>
-            </a>
-        </div>
-    </div>
+                <!-- Filter Status & Search & Export -->
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <!-- Tab Filter: Semua / Sudah / Belum -->
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-filter-satker active" data-filter="all">Semua</button>
+                        <button type="button" class="btn btn-filter-satker" data-filter="filled">Sudah Input
+                            (🟢)</button>
+                        <button type="button" class="btn btn-filter-satker" data-filter="empty">Belum Input
+                            (🔴)</button>
+                    </div>
 
-    <div class="col-sm-6 col-xl-3">
-        <div class="info-card">
-            <div class="info-card-icon" style="background:rgba(59,130,246,.1);color:#3b82f6;">
-                <i class="bi bi-award"></i>
+                    <!-- Search Input -->
+                    <div class="search-wrap">
+                        <i class="bi bi-search search-icon"></i>
+                        <input type="text" id="searchSatker" class="search-input" placeholder="Cari satker...">
+                    </div>
+
+                    <!-- Tombol Export Excel untuk Pimpinan -->
+                    <a href="<?= base_url('admin/dashboard/export-satker') ?>" class="btn-export-excel"
+                        title="Download Format Excel untuk Laporan Pimpinan">
+                        <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
+                    </a>
+                </div>
             </div>
-            <div class="info-card-val"><?= $total_pangkat ?></div>
-            <div class="info-card-label">Data Pangkat</div>
-            <a href="<?= base_url('admin/pangkat') ?>" class="info-card-link">
-                Kelola <i class="bi bi-arrow-right"></i>
-            </a>
+
+            <?php if (empty($data_satker)): ?>
+            <div class="empty-state">
+                <i class="bi bi-building"></i>
+                <div>Belum ada data satuan kerja</div>
+            </div>
+            <?php else: ?>
+
+            <!-- Chart Horizontal Bar -->
+            <div class="chart-body pb-3">
+                <div style="position: relative; max-height: 280px; width: 100%;">
+                    <canvas id="chartSatkerPersonel"></canvas>
+                </div>
+            </div>
+
+            <!-- Tabel Detail -->
+            <div class="table-responsive">
+                <table class="table-custom" id="satkerTable">
+                    <thead>
+                        <tr>
+                            <th width="40" class="text-center">#</th>
+                            <th>Satuan Kerja</th>
+                            <th>Kode</th>
+                            <th class="text-center" width="110">Personel</th>
+                            <th class="text-center" width="110">Kendaraan</th>
+                            <th class="text-center" width="110">QR Aktif</th>
+                            <th class="text-center" width="140">Coverage QR</th>
+                            <th class="text-center" width="120">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($data_satker as $i => $s): ?>
+                        <?php
+                                $personel   = (int) $s['total_personel'];
+                                $kendaraan  = (int) $s['total_kendaraan'];
+                                $qrAktif    = (int) $s['total_qr_aktif'];
+                                $hasData    = ($personel > 0 || $kendaraan > 0);
+                                
+                                $coverage = $kendaraan > 0 ? round(($qrAktif / $kendaraan) * 100) : 0;
+                                $coverageClass = $coverage >= 80 ? 'success' : ($coverage >= 50 ? 'warning' : 'danger');
+                            ?>
+                        <tr data-has-data="<?= $hasData ? '1' : '0' ?>">
+                            <td class="text-center text-muted fw-500 row-idx"><?= $i + 1 ?></td>
+                            <td>
+                                <div class="satker-name"><?= esc($s['nama_singkat']) ?></div>
+                                <div class="satker-sub"><?= esc($s['nama_panjang']) ?></div>
+                            </td>
+                            <td>
+                                <span class="code-badge"><?= esc($s['kode_satker']) ?></span>
+                            </td>
+                            <td class="text-center">
+                                <?php if ($personel > 0): ?>
+                                <span class="badge-count blue"><?= $personel ?></span>
+                                <?php else: ?>
+                                <span class="text-muted-zero">0</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-center">
+                                <?php if ($kendaraan > 0): ?>
+                                <span class="badge-count green"><?= $kendaraan ?></span>
+                                <?php else: ?>
+                                <span class="text-muted-zero">0</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-center">
+                                <?php if ($qrAktif > 0): ?>
+                                <span class="badge-count purple"><?= $qrAktif ?></span>
+                                <?php else: ?>
+                                <span class="text-muted-zero">0</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-center">
+                                <?php if ($kendaraan > 0): ?>
+                                <div class="coverage-wrap">
+                                    <div class="coverage-bar">
+                                        <div class="coverage-fill <?= $coverageClass ?>"
+                                            style="width:<?= $coverage ?>%"></div>
+                                    </div>
+                                    <span class="coverage-pct <?= $coverageClass ?>"><?= $coverage ?>%</span>
+                                </div>
+                                <?php else: ?>
+                                <span class="text-muted-zero" style="font-size: .75rem;">-</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-center">
+                                <?php if ($hasData): ?>
+                                <span class="badge-status aktif" style="font-size: .68rem;">
+                                    <span class="badge-dot"></span> Terisi
+                                </span>
+                                <?php else: ?>
+                                <span class="badge-status nonaktif"
+                                    style="font-size: .68rem; background: #fee2e2; color:#b91c1c;">
+                                    <span class="badge-dot" style="background:#ef4444;"></span> Kosong
+                                </span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                    <!-- Footer total -->
+                    <tfoot>
+                        <tr class="tfoot-row">
+                            <td colspan="3" class="fw-600">Total Keseluruhan</td>
+                            <td class="text-center fw-600 text-primary">
+                                <?= array_sum(array_column($data_satker, 'total_personel')) ?>
+                            </td>
+                            <td class="text-center fw-600 text-success">
+                                <?= array_sum(array_column($data_satker, 'total_kendaraan')) ?>
+                            </td>
+                            <td class="text-center fw-600 text-purple" style="color: #8b5cf6;">
+                                <?= array_sum(array_column($data_satker, 'total_qr_aktif')) ?>
+                            </td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
+
+
 
 <?= $this->endSection() ?>
 
@@ -473,6 +681,308 @@
 .info-card-link:hover {
     color: #15803d;
 }
+
+/* ── Progress Summary Card (BARU) ── */
+.progress-summary-card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    padding: 1.2rem 1.4rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .04);
+}
+
+.progress-radial-icon {
+    width: 44px;
+    height: 44px;
+    background: #f0fdf4;
+    color: #16a34a;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+
+.stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .75rem;
+    padding: 4px 10px;
+    border-radius: 99px;
+    font-weight: 500;
+}
+
+.stat-pill.success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.stat-pill.success .dot {
+    width: 6px;
+    height: 6px;
+    background: #16a34a;
+    border-radius: 50%;
+}
+
+.stat-pill.danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.stat-pill.danger .dot {
+    width: 6px;
+    height: 6px;
+    background: #ef4444;
+    border-radius: 50%;
+}
+
+.badge-pct {
+    background: #16a34a;
+    color: #fff;
+    font-size: .82rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 8px;
+}
+
+/* ── Filter Tab Satker (BARU) ── */
+.btn-filter-satker {
+    font-size: .75rem;
+    padding: .35rem .75rem;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #475569;
+    font-weight: 500;
+    transition: all .15s;
+}
+
+.btn-filter-satker:hover {
+    background: #f8fafc;
+    color: #0f172a;
+}
+
+.btn-filter-satker.active {
+    background: #16a34a;
+    color: #fff;
+    border-color: #16a34a;
+}
+
+/* ── Button Export Excel (BARU) ── */
+.btn-export-excel {
+    display: inline-flex;
+    align-items: center;
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #86efac;
+    padding: .35rem .85rem;
+    border-radius: 8px;
+    font-size: .78rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all .2s;
+    white-space: nowrap;
+}
+
+.btn-export-excel:hover {
+    background: #16a34a;
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+/* ── Satker Table ── */
+/* ── Satker Table Custom ── */
+.table-custom {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .83rem;
+}
+
+.table-custom thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    padding: .75rem 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    border-top: 1px solid #f1f5f9;
+}
+
+.table-custom tbody td {
+    padding: .75rem 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+    color: #1e293b;
+}
+
+.table-custom tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.table-custom tfoot .tfoot-row td {
+    padding: .85rem 1rem;
+    background: #f8fafc;
+    border-top: 2px solid #cbd5e1;
+    font-size: .85rem;
+}
+
+.satker-name {
+    font-weight: 600;
+    color: #0f172a;
+    font-size: .85rem;
+}
+
+.satker-sub {
+    font-size: .72rem;
+    color: #64748b;
+    margin-top: 1px;
+}
+
+.code-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: .72rem;
+    font-weight: 600;
+    font-family: monospace;
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+}
+
+.text-muted-zero {
+    color: #cbd5e1;
+    font-weight: 500;
+}
+
+.fw-600 {
+    font-weight: 600;
+}
+
+/* Badge count */
+.badge-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: .75rem;
+    font-weight: 600;
+}
+
+.badge-count.blue {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.badge-count.green {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.badge-count.purple {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+/* Coverage bar */
+.coverage-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+}
+
+.coverage-bar {
+    width: 80px;
+    height: 6px;
+    background: #f3f4f6;
+    border-radius: 99px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.coverage-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width .5s ease;
+}
+
+.coverage-fill.success {
+    background: #16a34a;
+}
+
+.coverage-fill.warning {
+    background: #f59e0b;
+}
+
+.coverage-fill.danger {
+    background: #ef4444;
+}
+
+.coverage-pct {
+    font-size: .72rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.coverage-pct.success {
+    color: #16a34a;
+}
+
+.coverage-pct.warning {
+    color: #d97706;
+}
+
+.coverage-pct.danger {
+    color: #ef4444;
+}
+
+/* Search */
+.search-wrap {
+    position: relative;
+}
+
+.search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    font-size: .85rem;
+}
+
+.search-input {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: .4rem .75rem .4rem 2rem;
+    font-size: .82rem;
+    width: 200px;
+    outline: none;
+}
+
+.search-input:focus {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, .1);
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #9ca3af;
+}
+
+.empty-state i {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: .75rem;
+    opacity: .4;
+}
 </style>
 <?= $this->endSection() ?>
 
@@ -579,9 +1089,7 @@ new Chart(document.getElementById('chartShift'), {
     data: {
         labels: ['Pagi', 'Siang', 'Malam'],
         datasets: [{
-            data: totalShift > 0 ?
-                [shiftPagi, shiftSiang, shiftMalam] :
-                [1, 1, 1],
+            data: totalShift > 0 ? [shiftPagi, shiftSiang, shiftMalam] : [1, 1, 1],
             backgroundColor: ['#f59e0b', '#3b82f6', '#6366f1'],
             borderColor: '#fff',
             borderWidth: 3,
@@ -672,6 +1180,137 @@ new Chart(document.getElementById('chartSatker'), {
         }
     }
 });
+/* ════════════════════════════════════════
+   CHART: Personel & Kendaraan per Satker (Horizontal Bar)
+════════════════════════════════════════ */
+<?php if (!empty($data_satker)): ?>
+// Filter hanya satker yang ada personel atau kendaraan (biar chart tidak penuh dengan data 0)
+const rawDataSatker = <?= json_encode($data_satker) ?>;
+const activeSatker = rawDataSatker.filter(d => parseInt(d.total_personel) > 0 || parseInt(d.total_kendaraan) > 0);
+
+// Jika semua masih 0, ambil 5 satker teratas saja untuk placeholder
+const displayData = activeSatker.length > 0 ? activeSatker : rawDataSatker.slice(0, 5);
+
+const satkerNames = displayData.map(d => d.nama_singkat);
+const satkerPersonel = displayData.map(d => parseInt(d.total_personel));
+const satkerKendaraan = displayData.map(d => parseInt(d.total_kendaraan));
+const satkerQR = displayData.map(d => parseInt(d.total_qr_aktif));
+
+new Chart(document.getElementById('chartSatkerPersonel'), {
+    type: 'bar',
+    data: {
+        labels: satkerNames,
+        datasets: [{
+                label: 'Personel',
+                data: satkerPersonel,
+                backgroundColor: 'rgba(59,130,246,.8)',
+                borderRadius: 4,
+                barThickness: 12,
+            },
+            {
+                label: 'Kendaraan',
+                data: satkerKendaraan,
+                backgroundColor: 'rgba(22,163,74,.8)',
+                borderRadius: 4,
+                barThickness: 12,
+            },
+            {
+                label: 'QR Aktif',
+                data: satkerQR,
+                backgroundColor: 'rgba(139,92,246,.8)',
+                borderRadius: 4,
+                barThickness: 12,
+            },
+        ]
+    },
+    options: {
+        indexAxis: 'y', // ← Horizontal Bar!
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: {
+                    font: {
+                        size: 11
+                    },
+                    usePointStyle: true,
+                    pointStyle: 'circle',
+                    padding: 12,
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.x}`
+                }
+            }
+        },
+        scales: {
+            x: {
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(0,0,0,.04)'
+                },
+                border: {
+                    display: false
+                },
+                ticks: {
+                    precision: 0,
+                    stepSize: 5
+                }
+            },
+            y: {
+                grid: {
+                    display: false
+                },
+                border: {
+                    display: false
+                },
+                ticks: {
+                    font: {
+                        size: 11,
+                        weight: '500'
+                    }
+                }
+            }
+        }
+    }
+});
+
+// ── Live Search Satker Table ─────────────────────────
+// ── Filter Satker (Live Search + Tab Status) ─────────
+let currentFilter = 'all';
+
+document.querySelectorAll('.btn-filter-satker').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.btn-filter-satker').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        currentFilter = this.dataset.filter;
+        applySatkerFilter();
+    });
+});
+
+document.getElementById('searchSatker').addEventListener('input', applySatkerFilter);
+
+function applySatkerFilter() {
+    const keyword = document.getElementById('searchSatker').value.toLowerCase();
+
+    document.querySelectorAll('#satkerTable tbody tr').forEach(row => {
+        const hasData = row.getAttribute('data-has-data'); // '1' atau '0'
+        const textMatch = row.textContent.toLowerCase().includes(keyword);
+
+        let statusMatch = true;
+        if (currentFilter === 'filled') statusMatch = (hasData === '1');
+        if (currentFilter === 'empty') statusMatch = (hasData === '0');
+
+        if (textMatch && statusMatch) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+<?php endif; ?>
 
 /* ════════════════════════════════════════════════
    CHART 4 — Doughnut: Personel by Kelompok Pangkat
@@ -711,8 +1350,7 @@ new Chart(document.getElementById('chartPangkat'), {
         datasets: [{
             data: totalPangkat > 0 ? pangkatTotals : [1],
             backgroundColor: totalPangkat > 0 ?
-                pangkatLabels.map(l => pangkatColors[l] || '#6b7280') :
-                ['#e5e7eb'],
+                pangkatLabels.map(l => pangkatColors[l] || '#6b7280') : ['#e5e7eb'],
             borderColor: '#fff',
             borderWidth: 3,
             hoverOffset: 6,

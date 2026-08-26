@@ -14,7 +14,7 @@ class PersonelModel extends Model
     protected $allowedFields    = [
         'uuid', 'nrp', 'nama',
         'pangkat_id', 'satker_id',
-        'jabatan', 'foto', 'status',
+        'jabatan', 'no_hp', 'foto', 'status',
     ];
 
     protected $useTimestamps = true;
