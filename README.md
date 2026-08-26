@@ -1,69 +1,421 @@
-# CodeIgniter 4 Application Starter
+# 🛡️ Vehicle Gate Monitoring System
 
-## What is CodeIgniter?
+<div align="center">
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+![CodeIgniter](https://img.shields.io/badge/CodeIgniter-4.x-EF4223?style=for-the-badge&logo=codeigniter&logoColor=white)
+![PHP](https://img.shields.io/badge/PHP-8.x-777BB4?style=for-the-badge&logo=php&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8.x-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
+![Bootstrap](https://img.shields.io/badge/Bootstrap-5.x-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)
+![PWA](https://img.shields.io/badge/PWA-Ready-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+**Sistem Monitoring Kendaraan Keluar Berbasis QR Code untuk Lingkungan Militer**
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+*Dibangun khusus untuk jaringan intranet — data personel terlindungi, akses terkontrol*
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+</div>
 
-## Installation & updates
+---
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+## 📋 Tentang Proyek
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+**Vehicle Gate Monitoring System (VGS)** adalah aplikasi web berbasis intranet yang dirancang untuk memantau dan mencatat kendaraan yang keluar dari lingkungan tertentu. Sistem ini menggunakan QR Code sebagai media identifikasi kendaraan, memungkinkan petugas pos jaga melakukan pengecekan secara cepat, akurat, dan terdokumentasi.
 
-## Setup
+Aplikasi ini dibangun dengan pendekatan **keamanan data militer** sebagai prioritas utama — tidak ada koneksi ke internet, semua data tersimpan dan diakses hanya melalui jaringan intranet lokal.
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+---
 
-## Important Change with index.php
+## 🎯 Tujuan
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+- Meminimalisir potensi pencurian kendaraan di lingkungan kerja
+- Memberikan validasi identitas kendaraan secara real-time saat melintas gate
+- Mencatat log seluruh aktivitas kendaraan keluar secara otomatis
+- Menyediakan laporan dan rekap data yang mudah diakses oleh admin
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+---
 
-**Please** read the user guide for a better explanation of how CI4 works!
+## 👥 Role Pengguna
 
-## Repository Management
+| Role | Akses |
+|------|-------|
+| **Admin** | Kelola seluruh data master, generate QR, lihat laporan lengkap |
+| **Petugas** | Scan QR kendaraan di pos jaga, lihat log scan pribadi |
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+---
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+## ✨ Fitur Utama
 
-## Server Requirements
+### 🔐 Autentikasi & Keamanan
+- Login berbasis session dengan role-based access control
+- Filter middleware untuk Admin dan Petugas
+- Auto-redirect berdasarkan role dan jenis perangkat (mobile/desktop)
+- Session timeout otomatis
+- Proteksi CSRF pada setiap form dan request AJAX
 
-PHP version 8.2 or higher is required, with the following extensions installed:
+### 👤 Management Personel
+- CRUD data personel lengkap (NRP, nama, pangkat, jabatan, satuan kerja)
+- Upload foto personel
+- Dropdown pangkat terkelompok (Perwira, Bintara, Tamtama, PNS)
+- Relasi ke tabel `pangkat` dan `satuan_kerja` (FK normalized)
+- Input nomor HP/WhatsApp untuk kontak langsung
+- Status aktif / nonaktif personel
+- Import data dari Excel (dengan validasi per baris)
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
+### 🚗 Management Kendaraan
+- CRUD data kendaraan per personel (1 personel bisa punya banyak kendaraan)
+- Kode kendaraan auto-generate (format: `KND-0001`)
+- Multi foto galeri kendaraan (maks. 6 foto)
+- Field data STNK lengkap: Nomor Rangka, Nomor Mesin, Nomor STNK, Nomor BPKB
+- Upload foto STNK
+- Status aktif / dibekukan
+- Proteksi hapus: kendaraan tidak bisa dihapus jika QR masih aktif
 
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - The end of life date for PHP 8.1 was December 31, 2025.
-> - If you are still using below PHP 8.2, you should upgrade immediately.
-> - The end of life date for PHP 8.2 will be December 31, 2026.
+### 📊 Management Data Master
+- **Pangkat**: CRUD data pangkat militer & PNS dengan kelompok (Perwira, Bintara, Tamtama, PNS), kategori, dan golongan
+- **Satuan Kerja**: CRUD satker dengan kode unik, nama singkat, dan nama panjang
 
-Additionally, make sure that the following extensions are enabled in your PHP:
+### 🔲 QR Code Management
+- Generate QR Code per kendaraan (1 kendaraan = 1 QR aktif)
+- Regenerate QR otomatis menonaktifkan QR lama
+- Download QR Code sebagai file PNG
+- Revoke / nonaktifkan QR Code
+- Filter status QR (aktif / nonaktif)
 
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+### 📷 Scan QR Code
+Tersedia dalam 3 mode tampilan:
+
+#### Mode Desktop (Hardware Scanner)
+- Input autofokus untuk scanner USB/Wireless
+- Hasil scan tampil langsung: foto personel + detail kendaraan
+- Log scan tersimpan otomatis
+- Live clock dan counter scan harian
+
+#### Mode Monitor (Fullscreen)
+- Tampilan fullscreen untuk layar TV/monitor di pos jaga
+- Layout 2 panel: identitas personel (kiri) + detail kendaraan (kanan)
+- Galeri foto kendaraan dengan lightbox
+- Audio beep feedback (sukses/gagal)
+- TV scanline effect
+- Ticker informasi berjalan
+- Responsif hingga resolusi 4K
+- Data hasil scan tidak hilang hingga scan berikutnya
+
+#### Mode Mobile (Kamera HP/Tablet)
+- Buka kamera langsung dari browser (html5-qrcode)
+- Deteksi kamera belakang otomatis
+- Toggle flash/torch
+- QR frame dengan animasi scan line
+- Vibrate feedback saat QR terbaca
+- Layout landscape: 2 kolom (personel kiri, kendaraan kanan)
+- Galeri foto kendaraan grid 3 kolom (portrait) / 4 kolom (landscape)
+- Log scan mini dalam aplikasi
+- Tombol "Scan Lagi" dengan resume kamera tanpa restart
+
+### 📋 Hasil Scan Menampilkan
+- Foto personel pemilik kendaraan
+- Identitas: nama, NRP, pangkat, jabatan, satuan kerja
+- Tombol **direct WhatsApp** ke nomor HP personel dengan pesan otomatis
+- Detail kendaraan spesifik yang di-scan: plat nomor, merk, model, warna, tahun
+- Nomor STNK & tahun kendaraan
+- Galeri foto kendaraan (tampak depan, samping, belakang, dll)
+- Foto STNK (dengan border gold)
+- Status kendaraan (aktif / dibekukan)
+
+### 📈 Dashboard Admin
+- Statistik: total personel, kendaraan, petugas, keluar hari ini
+- **Bar chart**: aktivitas kendaraan keluar 7 hari terakhir
+- **Doughnut chart**: distribusi shift (pagi, siang, malam) bulan ini
+- **Horizontal bar chart**: top 5 satker paling aktif
+- **Rekap per Satuan Kerja**: tabel + grouped bar chart jumlah personel, kendaraan, QR aktif, dan coverage QR per satker
+
+### 📊 Laporan & Rekap
+- Filter multi-kriteria: tanggal, petugas, shift, pangkat, kelompok pangkat, satuan kerja, jenis kendaraan
+- DataTables dengan pagination, sorting, dan search
+- Export CSV dengan BOM UTF-8 (kompatibel Excel)
+- Tampilan laporan berbeda: Admin (semua data) vs Petugas (log pribadi)
+
+### 📱 Progressive Web App (PWA)
+- Install ke homescreen HP/tablet tanpa App Store
+- Offline fallback page
+- Service worker dengan cache strategy
+- Shortcut langsung ke Mobile Scanner
+- Update banner otomatis saat ada versi baru
+- Tombol install di sidebar
+
+---
+
+## 🗄️ Struktur Database
+
+```
+users               → akun admin & petugas
+personel            → data personel militer
+pangkat             → master data pangkat (FK dari personel)
+satuan_kerja        → master data satker (FK dari personel)
+kendaraan           → data kendaraan milik personel
+kendaraan_foto      → galeri foto kendaraan (multi foto)
+qrcode              → QR Code per kendaraan
+log_keluar          → log setiap scan QR
+ci_sessions         → session database
+```
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Teknologi |
+|-------|-----------|
+| Backend Framework | CodeIgniter 4 |
+| Database | MySQL 8.x |
+| Frontend CSS | Bootstrap 5 |
+| Font Icons | Bootstrap Icons |
+| Chart | Chart.js 4 |
+| Tabel Data | DataTables 1.10 |
+| QR Generator | chillerlan/php-qrcode v5.x |
+| QR Scanner | html5-qrcode 2.3.x |
+| UUID | ramsey/uuid |
+| PWA | Service Worker + Web App Manifest |
+| Font | Inter, JetBrains Mono, Rajdhani |
+
+---
+
+## 📁 Struktur Direktori
+
+```
+vehicle-gate-system/
+├── app/
+│   ├── Controllers/
+│   │   ├── Auth.php
+│   │   ├── Dashboard.php
+│   │   ├── Personel.php
+│   │   ├── Kendaraan.php
+│   │   ├── Pangkat.php
+│   │   ├── Satker.php
+│   │   ├── QRCode.php
+│   │   ├── Scan.php
+│   │   ├── Laporan.php
+│   │   └── Pwa.php
+│   ├── Models/
+│   │   ├── UserModel.php
+│   │   ├── PersonelModel.php
+│   │   ├── KendaraanModel.php
+│   │   ├── KendaraanFotoModel.php
+│   │   ├── PangkatModel.php
+│   │   ├── SatkerModel.php
+│   │   ├── QRCodeModel.php
+│   │   └── LogKeluarModel.php
+│   ├── Views/
+│   │   ├── layouts/
+│   │   │   ├── main.php
+│   │   │   └── auth.php
+│   │   ├── auth/
+│   │   ├── dashboard/
+│   │   ├── personel/
+│   │   ├── kendaraan/
+│   │   ├── pangkat/
+│   │   ├── satker/
+│   │   ├── qrcode/
+│   │   ├── scan/
+│   │   │   ├── index.php       ← Hardware scanner
+│   │   │   ├── monitor.php     ← Fullscreen TV mode
+│   │   │   └── mobile.php      ← Mobile camera mode
+│   │   ├── laporan/
+│   │   └── pwa/
+│   ├── Filters/
+│   │   ├── AuthFilter.php
+│   │   └── RoleFilter.php
+│   └── Database/
+│       ├── Migrations/
+│       └── Seeds/
+├── public/
+│   ├── uploads/
+│   │   ├── personel/
+│   │   └── kendaraan/
+│   ├── assets/
+│   │   └── icons/              ← PWA icons
+│   ├── manifest.json           ← PWA manifest
+│   └── sw.js                   ← Service Worker
+└── composer.json
+```
+
+---
+
+## 🚀 Instalasi
+
+### Prasyarat
+- PHP >= 8.0
+- MySQL >= 8.0
+- Composer
+- Ekstensi PHP: `gd`, `intl`, `mbstring`, `mysqli`
+- Web server: Apache / Nginx
+
+### Langkah Instalasi
+
+**1. Clone repository**
+```bash
+git clone https://github.com/username/vehicle-gate-system.git
+cd vehicle-gate-system
+```
+
+**2. Install dependencies**
+```bash
+composer install
+```
+
+**3. Konfigurasi environment**
+```bash
+cp env .env
+```
+
+Edit file `.env`:
+```env
+CI_ENVIRONMENT = development
+
+database.default.hostname = localhost
+database.default.database = vehicle_gate_db
+database.default.username = root
+database.default.password = your_password
+database.default.DBDriver = MySQLi
+
+app.baseURL = 'http://your-intranet-ip/vehicle-gate-system/public/'
+```
+
+**4. Buat database**
+```sql
+CREATE DATABASE vehicle_gate_db
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+```
+
+**5. Jalankan migration & seeder**
+```bash
+php spark migrate
+php spark db:seed AdminSeeder
+```
+
+**6. Buat folder upload**
+```bash
+mkdir -p public/uploads/personel
+mkdir -p public/uploads/kendaraan
+mkdir -p public/assets/icons
+chmod 755 public/uploads/personel
+chmod 755 public/uploads/kendaraan
+```
+
+**7. Akses aplikasi**
+```
+http://your-intranet-ip/vehicle-gate-system/public/
+```
+
+### Akun Default
+```
+Username : admin
+Password : admin123
+```
+> ⚠️ **Segera ganti password** setelah login pertama!
+
+---
+
+## 📖 Panduan Penggunaan
+
+### Alur Admin
+```
+Login → Dashboard
+  ├── Input Data Pangkat & Satker
+  ├── Input Data Personel (NRP, foto, no HP)
+  ├── Input Data Kendaraan (foto galeri, foto STNK, field STNK)
+  ├── Generate QR Code per Kendaraan → Download/Cetak Kartu
+  ├── Kelola User Petugas
+  └── Monitor Laporan & Rekap
+```
+
+### Alur Petugas
+```
+Login → (Auto-redirect berdasarkan perangkat)
+  ├── Desktop → Halaman Scan (hardware scanner)
+  ├── Monitor → Fullscreen mode (/petugas/scan/monitor)
+  └── HP/Tablet → Mobile scanner (/petugas/scan/mobile)
+              ↓
+         Scan QR Kartu Kendaraan
+              ↓
+         Tampil: Foto Personel + Detail Kendaraan + Galeri Foto
+              ↓
+         Log Tersimpan Otomatis
+```
+
+### Alur Scan QR
+```
+Petugas scan QR kendaraan
+      ↓
+Sistem cari kode QR → dapat kendaraan_id
+      ↓
+Validasi: QR aktif? Kendaraan tidak dibekukan? Personel aktif?
+      ↓
+Tampilkan hasil: identitas personel + detail kendaraan
+      ↓
+Log otomatis tersimpan (kendaraan_id, petugas_id, timestamp, shift)
+```
+
+---
+
+## 🔒 Keamanan
+
+- Aplikasi **hanya dapat diakses melalui jaringan intranet**
+- Semua endpoint dilindungi dengan autentikasi session
+- Role-based access: Admin dan Petugas memiliki akses berbeda
+- CSRF token pada setiap form dan AJAX request
+- UUID digunakan sebagai identifier di URL (bukan ID integer)
+- Data personel militer tidak pernah dikirim ke luar jaringan
+- QR Code dapat di-revoke kapan saja oleh admin
+- Kendaraan dibekukan = QR ditolak saat scan
+
+---
+
+## 📱 PWA — Install ke Homescreen
+
+### Android (Chrome)
+1. Buka URL aplikasi di Chrome
+2. Tunggu banner "Tambahkan ke layar utama" muncul
+3. Atau: Menu Chrome (⋮) → "Tambahkan ke layar utama"
+4. Icon VGS akan muncul di homescreen
+
+### iOS (Safari)
+1. Buka URL aplikasi di Safari
+2. Tap tombol Share (□↑)
+3. Pilih "Tambahkan ke Layar Utama"
+4. Konfirmasi → Done
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] Brute force protection & password strength
+- [ ] QR Code HMAC signature untuk keamanan lebih tinggi
+- [ ] Database backup & restore
+- [ ] Notifikasi real-time (kendaraan dibekukan mencoba scan)
+- [ ] Export laporan PDF berkop satuan
+- [ ] Audit trail perubahan data
+- [ ] Mode offline dengan background sync
+- [ ] Manajemen shift manual oleh admin
+
+---
+
+## 🤝 Kontribusi
+
+Proyek ini dikembangkan untuk keperluan internal. Untuk pertanyaan atau kontribusi, silakan hubungi pengembang.
+
+---
+
+## 📄 Lisensi
+
+Proyek ini bersifat **proprietary** dan dikembangkan untuk penggunaan internal lingkungan militer. Dilarang mendistribusikan atau memodifikasi tanpa izin.
+
+---
+
+<div align="center">
+
+**Vehicle Gate Monitoring System**
+
+*Dibangun dengan ❤️ untuk keamanan dan ketertiban lingkungan kerja*
+
+`CodeIgniter 4` · `MySQL` · `Bootstrap 5` · `PWA`
+
+</div>
