@@ -41,20 +41,192 @@ class Personel extends BaseController
         $this->qrCodeModel    = new QRCodeModel();
         $this->satkerModel    = new SatkerModel();
         $this->pangkatModel   = new PangkatModel();
+        $this->db = \Config\Database::connect();
     }
 
     // ──────────────────────────────────────────────────────────
     // INDEX — Daftar Semua Personel
     // GET /admin/personel
     // ──────────────────────────────────────────────────────────
+    // public function index(): string
+    // {
+    //     $data = [
+    //         'title'    => 'Management Personel',
+    //         'personel' => $this->personelModel->getAllWithKendaraanCount(),
+    //     ];
+
+    //     return view('personel/index', $data);
+    // }
+
     public function index(): string
     {
+        // Hanya ambil summary untuk stat cards
+        $totalPersonel  = $this->personelModel->countAllResults();
+        $totalAktif     = $this->personelModel->where('status', 'aktif')->countAllResults();
+        $totalKendaraan = $this->db->table('kendaraan')->countAllResults();
+
         $data = [
-            'title'    => 'Management Personel',
-            'personel' => $this->personelModel->getAllWithKendaraanCount(),
+            'title'          => 'Management Personel',
+            'total_personel' => $totalPersonel,
+            'total_aktif'    => $totalAktif,
+            'total_kendaraan'=> $totalKendaraan,
         ];
 
         return view('personel/index', $data);
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // DATATABLES SERVER-SIDE
+    // POST /admin/personel/datatables
+    // ──────────────────────────────────────────────────────────
+    public function datatables()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(403);
+        }
+
+        $draw   = (int) $this->request->getPost('draw');
+        $start  = (int) $this->request->getPost('start');
+        $length = (int) $this->request->getPost('length');
+        $search = $this->request->getPost('search')['value'] ?? '';
+        $order  = $this->request->getPost('order')[0] ?? [];
+
+        // Kolom yang bisa di-sort (index sesuai kolom di view)
+        $columns = [
+            1 => 'p.nama',
+            2 => 'p.nrp',
+            3 => 'pk.urutan',
+            4 => 'sk.nama_singkat',
+            5 => 'total_kendaraan',
+            6 => 'p.status',
+        ];
+
+        $orderIndex = isset($order['column']) ? (int) $order['column'] : null;
+        $orderCol   = ($orderIndex !== null && isset($columns[$orderIndex])) ? $columns[$orderIndex] : null;
+        $orderDir   = strtolower($order['dir'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
+
+        // Base query
+        $baseQuery = $this->db->table('personel p')
+            ->select('
+                p.id, p.uuid, p.nrp, p.nama,
+                p.jabatan, p.foto, p.status,
+                p.updated_at, 
+                pk.pangkat_singkat,
+                sk.nama_singkat as satker_singkat,
+                COUNT(k.id) as total_kendaraan
+            ')
+            ->join('pangkat pk',     'pk.id = p.pangkat_id',  'left')
+            ->join('satuan_kerja sk', 'sk.id = p.satker_id',  'left')
+            ->join('kendaraan k',    'k.personel_id = p.id',  'left')
+            ->groupBy('p.id');
+
+        // Total semua data (tanpa filter)
+        $totalAll = (clone $baseQuery)->countAllResults(false);
+
+        // Filter search
+        if (!empty($search)) {
+            $baseQuery->groupStart()
+                ->like('p.nama',            $search)
+                ->orLike('p.nrp',           $search)
+                ->orLike('pk.pangkat_singkat', $search)
+                ->orLike('sk.nama_singkat', $search)
+                ->orLike('p.jabatan',       $search)
+            ->groupEnd();
+        }
+
+        // Total setelah filter
+        $totalFiltered = (clone $baseQuery)->countAllResults(false);
+
+        // Ambil data dengan urutan & limit
+        if ($orderCol) {
+            // User klik header kolom tertentu
+            $baseQuery->orderBy($orderCol, $orderDir);
+        }
+
+        // Default: urut pangkat (urutan terkecil dulu),
+        // lalu di dalam pangkat yang sama, yang terakhir diubah/ditambah paling atas
+        $baseQuery->orderBy('pk.urutan IS NULL', 'ASC', false)   // personel tanpa pangkat ditaruh paling bawah
+          ->orderBy('pk.urutan', 'ASC')
+          ->orderBy('COALESCE(p.updated_at, p.created_at)', 'DESC', false)
+          ->orderBy('p.id', 'DESC');
+
+        if ($length !== -1) {
+            $baseQuery->limit($length, $start);
+        }
+
+        $data = $baseQuery->get()->getResultArray();
+
+        // Build rows
+        $rows = [];
+        foreach ($data as $i => $p) {
+            $uuid = esc($p['uuid']);
+            $nama = esc($p['nama']);
+            $nrp  = esc($p['nrp']);
+
+            // Avatar
+            $avatar = $p['foto']
+                ? '<img src="' . base_url('uploads/personel/' . $p['foto']) . '" class="avatar-photo" alt="">'
+                : '<div class="avatar-initial">' . strtoupper(substr($p['nama'], 0, 1)) . '</div>';
+
+            // Status badge
+            $statusBadge = $p['status'] === 'aktif'
+                ? '<span class="badge-status aktif"><span class="badge-dot"></span> Aktif</span>'
+                : '<span class="badge-status nonaktif"><span class="badge-dot"></span> Nonaktif</span>';
+
+            // Toggle button
+            $toggleClass = $p['status'] === 'aktif' ? 'deactivate' : 'activate';
+            $toggleIcon  = $p['status'] === 'aktif' ? 'bi-toggle-on' : 'bi-toggle-off';
+            $toggleUrl   = base_url('admin/personel/toggle/' . $uuid);
+
+            $toggleBtn = '
+                <button type="button"
+                    class="btn-action ' . $toggleClass . '"
+                    onclick="konfirmasiToggle(\'' . $toggleUrl . '\',\'' . $nama . '\',\'' . $p['status'] . '\')">
+                    <i class="bi ' . $toggleIcon . '"></i>
+                </button>';
+
+            // Delete button — hanya kalau tidak punya kendaraan
+            $deleteBtn = '';
+            if ((int) $p['total_kendaraan'] === 0) {
+                $deleteBtn = '
+                    <button type="button"
+                        class="btn-action delete btn-delete"
+                        data-uuid="' . $uuid . '"
+                        data-nama="' . $nama . '"
+                        data-nrp="'  . $nrp  . '"
+                        data-url="'  . base_url('admin/personel/delete/' . $uuid) . '">
+                        <i class="bi bi-trash"></i>
+                    </button>';
+            }
+
+            $rows[] = [
+                $start + $i + 1,
+                '<div class="d-flex align-items-center gap-2">' . $avatar . '<span class="fw-500">' . $nama . '</span></div>',
+                '<code class="code-tag">' . $nrp . '</code>',
+                '<div class="fw-500" style="font-size:.83rem;">' . esc($p['pangkat_singkat']) . '</div>'
+                    . ($p['jabatan'] ? '<div style="font-size:.75rem;color:#9ca3af;">' . esc($p['jabatan']) . '</div>' : ''),
+                '<span style="font-size:.82rem;color:#6b7280;">' . (esc($p['satker_singkat']) ?: '-') . '</span>',
+                '<span class="badge-kendaraan"><i class="bi bi-car-front me-1"></i>' . $p['total_kendaraan'] . '</span>',
+                $statusBadge,
+                '<div class="action-wrap">
+                    <a href="' . base_url('admin/personel/detail/' . $uuid) . '" class="btn-action view" title="Detail">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                    <a href="' . base_url('admin/personel/edit/' . $uuid) . '" class="btn-action edit" title="Edit">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    ' . $toggleBtn . '
+                    ' . $deleteBtn . '
+                </div>',
+            ];
+        }
+
+        return $this->response->setJSON([
+            'draw'            => $draw,
+            'recordsTotal'    => $totalAll,
+            'recordsFiltered' => $totalFiltered,
+            'data'            => $rows,
+        ]);
     }
 
     // ──────────────────────────────────────────────────────────
@@ -191,41 +363,41 @@ class Personel extends BaseController
     // DETAIL — Detail Personel + Kendaraan
     // GET /admin/personel/detail/{uuid}
     // ──────────────────────────────────────────────────────────
-    public function detail(string $uuid): string
-{
-    $personel = $this->personelModel->getWithKendaraan($uuid);
+    public function detail(string $uuid)
+    {
+        $personel = $this->personelModel->getWithKendaraan($uuid);
 
-    if (!$personel) {
-        return redirect()->to('/admin/personel')
-                        ->with('error', 'Personel tidak ditemukan.');
-    }
-
-    // QR sekarang per kendaraan
-    $kendaraanList = $this->kendaraanModel->getByPersonel($personel['id']);
-
-    $qrPerKendaraan = [];
-    foreach ($kendaraanList as $k) {
-        $qr = $this->qrCodeModel->findAktifByKendaraan($k['id']);
-        if ($qr) {
-            $qrPerKendaraan[$k['id']] = $qr;
+        if (!$personel) {
+            return redirect()->to('/admin/personel')
+                            ->with('error', 'Personel tidak ditemukan.');
         }
+
+        // QR sekarang per kendaraan
+        $kendaraanList = $this->kendaraanModel->getByPersonel($personel['id']);
+
+        $qrPerKendaraan = [];
+        foreach ($kendaraanList as $k) {
+            $qr = $this->qrCodeModel->findAktifByKendaraan($k['id']);
+            if ($qr) {
+                $qrPerKendaraan[$k['id']] = $qr;
+            }
+        }
+
+        $data = [
+            'title'          => 'Detail Personel',
+            'personel'       => $personel,
+            'qrPerKendaraan' => $qrPerKendaraan,
+        ];
+
+        return view('personel/detail', $data);
     }
-
-    $data = [
-        'title'          => 'Detail Personel',
-        'personel'       => $personel,
-        'qrPerKendaraan' => $qrPerKendaraan,
-    ];
-
-    return view('personel/detail', $data);
-}
 
     // ──────────────────────────────────────────────────────────
     // EDIT — Form Edit Personel
     // GET /admin/personel/edit/{uuid}
     // ──────────────────────────────────────────────────────────
 
-    public function edit(string $uuid): string
+    public function edit(string $uuid)
     {
         $personel = $this->personelModel->findByUuid($uuid);
 
@@ -390,7 +562,7 @@ class Personel extends BaseController
     // ──────────────────────────────────────────────────────────
     // TOGGLE STATUS — Aktif / Nonaktifkan
     // POST /admin/personel/toggle/{uuid}
-    // ──────────────────────────────────────────────────────────
+
     public function toggle(string $uuid)
     {
         $personel = $this->personelModel->findByUuid($uuid);
@@ -403,10 +575,10 @@ class Personel extends BaseController
         $newStatus = $personel['status'] === 'aktif' ? 'nonaktif' : 'aktif';
         $label     = $newStatus === 'aktif' ? 'diaktifkan' : 'dinonaktifkan';
 
-        $this->personelModel->update($personel['id'], [
-            'status'     => $newStatus,
-            'updated_at' => date('Y-m-d H:i:s'),
-        ]);
+        // Pakai Query Builder supaya updated_at TIDAK ikut berubah
+        $this->db->table('personel')
+            ->where('id', $personel['id'])
+            ->update(['status' => $newStatus]);
 
         return redirect()->to('/admin/personel')
                         ->with('success', "Personel berhasil {$label}.");

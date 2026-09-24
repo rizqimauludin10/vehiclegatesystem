@@ -36,6 +36,7 @@ class Filters extends BaseFilters
         'forcehttps'    => \CodeIgniter\Filters\ForceHTTPS::class,
         'pagecache'     => \CodeIgniter\Filters\PageCache::class,
         'performance'   => \CodeIgniter\Filters\PerformanceMetrics::class,
+        'maintenance'   => \App\Filters\MaintenanceFilter::class,
 
         // ── Custom Filter ─────────────────────────────────────
         'auth'          => AuthFilter::class,
@@ -59,6 +60,7 @@ class Filters extends BaseFilters
         'before' => [
             'forcehttps', // Force Global Secure Requests
             'pagecache',  // Web Page Caching
+            'maintenance',
         ],
         'after' => [
             'pagecache',   // Web Page Caching

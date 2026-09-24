@@ -24,6 +24,7 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
 
     // Personel Management
     $routes->get('personel', 'Personel::index');
+    $routes->post('personel/datatables', 'Personel::datatables');
     $routes->get('personel/create', 'Personel::create');
     $routes->post('personel/store', 'Personel::store');
     $routes->get('personel/edit/(:segment)', 'Personel::edit/$1');
@@ -37,6 +38,7 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
 
     // Kendaraan Management
     $routes->get('kendaraan', 'Kendaraan::index');
+    $routes->post('kendaraan/datatables', 'Kendaraan::datatables');
     $routes->get('kendaraan/create', 'Kendaraan::create');
     $routes->post('kendaraan/store', 'Kendaraan::store');
     $routes->get('kendaraan/edit/(:segment)', 'Kendaraan::edit/$1');
@@ -52,6 +54,7 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
 
     // QR Code
     $routes->get('qrcode', 'QRCode::index');
+    $routes->post('qrcode/datatables', 'QRCode::datatables');
     $routes->post('qrcode/generate/(:segment)', 'QRCode::generate/$1');
     
     $routes->get('qrcode/download-satker/(:num)', 'QRCode::downloadZipBySatker/$1');
@@ -83,6 +86,24 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->get('satker/edit/(:segment)',    'Satker::edit/$1');
     $routes->post('satker/update/(:segment)', 'Satker::update/$1');
     $routes->post('satker/delete/(:segment)', 'Satker::delete/$1');
+
+    // ── Backup ───────────────────────────────────────────
+    $routes->get('backup',                        'Backup::index');
+    $routes->post('backup/create',                'Backup::create');
+    $routes->get('backup/download/(:segment)',    'Backup::download/$1');
+    $routes->post('backup/delete/(:segment)',     'Backup::delete/$1');
+    $routes->post('backup/foto',                      'Backup::foto');
+    $routes->get('backup/downloadfoto/(:segment)',     'Backup::downloadFoto/$1');
+    $routes->post('backup/fotoajax',    'Backup::fotoAjax');
+    $routes->get('backup/progress',     'Backup::progress');
+    $routes->post('backup/createajax',  'Backup::createAjax');
+    $routes->get('backup/progressdb',   'Backup::progressDb');
+});
+
+$routes->group('admin', ['filter' => 'role:superadmin'], static function ($routes) {
+    $routes->get('maintenance', 'Maintenance::index');
+    $routes->post('maintenance/toggle', 'Maintenance::toggle');
+    $routes->get('maintenance/preview', 'Maintenance::preview');
 });
 
 // ─── Petugas Routes ───────────────────────────────────────
@@ -94,6 +115,8 @@ $routes->group('petugas', ['filter' => 'role:petugas'], function ($routes) {
     $routes->get('scan/mobile', 'Scan::mobile');
     $routes->get('laporan', 'Laporan::petugasIndex');
 });
+
+$routes->get('maintenance/status', 'Maintenance::status');
 
 // ── PWA Routes ────────────────────────────────────────
 $routes->get('manifest.json',    'Pwa::manifest');

@@ -48,18 +48,13 @@
 
 <!-- Summary -->
 <div class="row g-3 mb-4">
-    <?php
-        $totalAktif     = count(array_filter($personel, fn($p) => $p['status'] === 'aktif'));
-        $totalNonaktif  = count($personel) - $totalAktif;
-        $totalKendaraan = array_sum(array_column($personel, 'total_kendaraan'));
-    ?>
     <div class="col-sm-4">
         <div class="summary-card">
             <div class="summary-icon" style="background:linear-gradient(135deg,#166534,#16a34a);">
                 <i class="bi bi-person-badge-fill"></i>
             </div>
             <div>
-                <div class="summary-num"><?= count($personel) ?></div>
+                <div class="summary-num"><?= $total_personel ?></div>
                 <div class="summary-label">Total Personel</div>
             </div>
         </div>
@@ -70,7 +65,7 @@
                 <i class="bi bi-person-check-fill"></i>
             </div>
             <div>
-                <div class="summary-num"><?= $totalAktif ?></div>
+                <div class="summary-num"><?= $total_aktif ?></div>
                 <div class="summary-label">Aktif</div>
             </div>
         </div>
@@ -81,7 +76,7 @@
                 <i class="bi bi-car-front-fill"></i>
             </div>
             <div>
-                <div class="summary-num"><?= $totalKendaraan ?></div>
+                <div class="summary-num"><?= $total_kendaraan ?></div>
                 <div class="summary-label">Total Kendaraan</div>
             </div>
         </div>
@@ -95,19 +90,9 @@
             <div class="card-custom-title">
                 <i class="bi bi-person-badge me-2 text-success"></i>Daftar Personel
             </div>
-            <div class="card-custom-sub"><?= count($personel) ?> personel terdaftar</div>
+            <div class="card-custom-sub"><?= $total_personel ?> personel terdaftar</div>
         </div>
     </div>
-
-    <?php if (empty($personel)): ?>
-    <div class="empty-state">
-        <i class="bi bi-person-badge"></i>
-        <div>Belum ada personel terdaftar</div>
-        <a href="<?= base_url('admin/personel/create') ?>" class="btn-primary-custom mt-3 d-inline-flex">
-            Tambah Personel Pertama
-        </a>
-    </div>
-    <?php else: ?>
     <div class="table-wrap">
         <table id="personelTable" class="table-custom" style="width:100%">
             <thead>
@@ -123,83 +108,9 @@
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($personel as $i => $p): ?>
-                <tr>
-                    <td class="text-muted"><?= $i + 1 ?></td>
-                    <td>
-                        <div class="d-flex align-items-center gap-2">
-                            <?php if ($p['foto']): ?>
-                            <img src="<?= base_url('uploads/personel/' . $p['foto']) ?>" class="avatar-photo" alt="">
-                            <?php else: ?>
-                            <div class="avatar-initial">
-                                <?= strtoupper(substr($p['nama'], 0, 1)) ?>
-                            </div>
-                            <?php endif; ?>
-                            <span class="fw-500"><?= esc($p['nama']) ?></span>
-                        </div>
-                    </td>
-                    <td><code class="code-tag"><?= esc($p['nrp']) ?></code></td>
-                    <td>
-                        <div class="fw-500" style="font-size:.83rem;"><?= esc($p['pangkat_singkat']) ?></div>
-                        <?php if ($p['jabatan']): ?>
-                        <div style="font-size:.75rem;color:#9ca3af;"><?= esc($p['jabatan']) ?></div>
-                        <?php endif; ?>
-                    </td>
-                    <td style="font-size:.82rem;color:#6b7280;">
-                        <?= esc($p['satker_singkat']) ?: '<span class="text-muted">-</span>' ?>
-                    </td>
-                    <td>
-                        <span class="badge-kendaraan">
-                            <i class="bi bi-car-front me-1"></i>
-                            <?= $p['total_kendaraan'] ?>
-                        </span>
-                    </td>
-                    <td>
-                        <?php if ($p['status'] === 'aktif'): ?>
-                        <span class="badge-status aktif"><span class="badge-dot"></span> Aktif</span>
-                        <?php else: ?>
-                        <span class="badge-status nonaktif"><span class="badge-dot"></span> Nonaktif</span>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <div class="action-wrap">
-                            <a href="<?= base_url('admin/personel/detail/' . $p['uuid']) ?>" class="btn-action view"
-                                title="Detail">
-                                <i class="bi bi-eye"></i>
-                            </a>
-                            <a href="<?= base_url('admin/personel/edit/' . $p['uuid']) ?>" class="btn-action edit"
-                                title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            <form action="<?= base_url('admin/personel/toggle/' . $p['uuid']) ?>" method="POST"
-                                class="d-inline" onsubmit="return confirm('Yakin ubah status personel ini?')">
-                                <?= csrf_field() ?>
-                                <button type="button"
-                                    class="btn-action <?= $p['status'] === 'aktif' ? 'deactivate' : 'activate' ?>"
-                                    title="<?= $p['status'] === 'aktif' ? 'Nonaktifkan' : 'Aktifkan' ?>"
-                                    onclick="konfirmasiToggle('<?= base_url('admin/personel/toggle/' . $p['uuid']) ?>','<?= esc($p['nama']) ?>','<?= $p['status'] ?>')">
-                                    <i class="bi <?= $p['status'] === 'aktif' ? 'bi-toggle-on' : 'bi-toggle-off' ?>">
-                                    </i>
-                                </button>
-                            </form>
-                            <?php if ($p['total_kendaraan'] == 0): ?>
-                            <form action="<?= base_url('admin/personel/delete/' . $p['uuid']) ?>" method="POST"
-                                class="d-inline delete-form" data-nama="<?= esc($p['nama']) ?>"
-                                data-nrp="<?= esc($p['nrp']) ?>">
-                                <?= csrf_field() ?>
-                                <button type="button" class="btn-action delete btn-delete" title="Hapus">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
-                            <?php endif; ?>
-                        </div>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
             </tbody>
         </table>
     </div>
-    <?php endif; ?>
 </div>
 
 <!-- Modal Konfirmasi Toggle Status Personel -->
@@ -1068,7 +979,56 @@ table.dataTable thead .sorting_desc::after {
 <script>
 $(document).ready(function() {
 
-    $('#personelTable').DataTable({
+    const table = $('#personelTable').DataTable({
+        processing: true,
+        serverSide: true,
+        stateSave: true,
+        stateSaveParams: function(settings, data) {
+            data.order = []; // jangan simpan urutan sort
+        },
+        stateLoadParams: function(settings, data) {
+            data.order = []; // abaikan urutan lama yang sudah tersimpan
+        },
+        ajax: {
+            url: '<?= base_url('admin/personel/datatables') ?>',
+            type: 'POST',
+            data: function(d) {
+                d['<?= csrf_token() ?>'] = '<?= csrf_hash() ?>';
+            },
+            error: function(xhr, err) {
+                console.error('DataTables AJAX error:', err);
+            }
+        },
+        columns: [{
+                data: 0,
+                orderable: false,
+                searchable: false
+            },
+            {
+                data: 1,
+                orderable: false
+            },
+            {
+                data: 2
+            },
+            {
+                data: 3
+            },
+            {
+                data: 4
+            },
+            {
+                data: 5
+            },
+            {
+                data: 6
+            },
+            {
+                data: 7,
+                orderable: false,
+                searchable: false
+            },
+        ],
         language: {
             search: "",
             searchPlaceholder: "Cari nama / NRP / satuan...",
@@ -1078,6 +1038,7 @@ $(document).ready(function() {
             infoFiltered: "(difilter dari _MAX_ data)",
             zeroRecords: "Tidak ada personel yang cocok",
             emptyTable: "Belum ada data personel",
+            processing: '<div style="padding:1rem;color:#6b7280;font-size:.83rem;">Memuat data...</div>',
             paginate: {
                 first: "«",
                 last: "»",
@@ -1085,85 +1046,63 @@ $(document).ready(function() {
                 previous: "‹"
             }
         },
-
         pageLength: 10,
         lengthMenu: [10, 25, 50, 100],
-
-        columnDefs: [
-            // Kolom # dan Aksi — tidak sortable & tidak ikut search
-            {
-                orderable: false,
-                searchable: false,
-                targets: [0, 7]
-            },
-            // Kolom foto/avatar — tidak sortable
-            {
-                orderable: false,
-                targets: [1]
-            },
-        ],
-
-        // Default sort: nama (kolom 1) ascending
         order: [],
-
         responsive: true,
-
-        // DOM: search kiri | length kanan — tabel — info kiri | pagination kanan
         dom: '<"dt-top-wrap"fl>rt<"dt-bottom-wrap"ip>',
     });
 
     /* ── Delete Modal ── */
-    let selectedForm = null;
+    let selectedUrl = null;
     const modal = document.getElementById('deleteModal');
-    const deleteMessage = document.getElementById('deleteMessage');
 
     document.addEventListener('click', function(e) {
-
         const button = e.target.closest('.btn-delete');
-
         if (!button) return;
 
-        selectedForm = button.closest('.delete-form');
+        selectedUrl = button.dataset.url;
 
-        const nama = selectedForm.dataset.nama;
-        const nrp = selectedForm.dataset.nrp;
+        const nama = button.dataset.nama;
+        const nrp = button.dataset.nrp;
 
-        deleteMessage.innerHTML = `
-        Apakah Anda yakin ingin menghapus personel berikut?
-
-        <div style="margin-top:12px;padding:12px;border-radius:10px;background:#f9fafb;border:1px solid #e5e7eb;">
-            <div style="font-weight:600;color:#111827;">
-                ${nama}
+        document.getElementById('deleteMessage').innerHTML = `
+            Apakah Anda yakin ingin menghapus personel berikut?
+            <div style="margin-top:12px;padding:12px;border-radius:10px;background:#f9fafb;border:1px solid #e5e7eb;">
+                <div style="font-weight:600;color:#111827;">${nama}</div>
+                <div style="font-size:.85rem;color:#6b7280;margin-top:4px;">NRP: ${nrp}</div>
             </div>
-
-            <div style="font-size:.85rem;color:#6b7280;margin-top:4px;">
-                NRP: ${nrp}
-            </div>
-        </div>
-
-        <div style="margin-top:12px;color:#dc2626;font-size:.82rem;">
-            Tindakan ini tidak dapat dibatalkan.
-        </div>
-    `;
+            <div style="margin-top:12px;color:#dc2626;font-size:.82rem;">
+                Tindakan ini tidak dapat dibatalkan.
+            </div>`;
 
         modal.classList.add('show');
-
     });
 
     document.getElementById('cancelDelete').addEventListener('click', () => {
         modal.classList.remove('show');
-        selectedForm = null;
+        selectedUrl = null;
     });
 
+    // document.getElementById('confirmDelete').addEventListener('click', () => {
+    //     if (selectedUrl) window.location.href = selectedUrl;
+    // });
+
+    // Delete via form POST bukan redirect — buat form dinamis
     document.getElementById('confirmDelete').addEventListener('click', () => {
-        if (selectedForm) selectedForm.submit();
+        if (!selectedUrl) return;
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = selectedUrl;
+        form.innerHTML = `<input type="hidden" name="<?= csrf_token() ?>" value="<?= csrf_hash() ?>">`;
+        document.body.appendChild(form);
+        form.submit();
     });
 
-    // Tutup modal kalau klik backdrop
     modal.addEventListener('click', function(e) {
         if (e.target === modal) {
             modal.classList.remove('show');
-            selectedForm = null;
+            selectedUrl = null;
         }
     });
 });

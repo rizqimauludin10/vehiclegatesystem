@@ -48,7 +48,7 @@
                 <i class="bi bi-car-front-fill"></i>
             </div>
             <div>
-                <div class="summary-num"><?= count($kendaraan) ?></div>
+                <div class="summary-num"><?= $total ?></div>
                 <div class="summary-label">Total Kendaraan</div>
             </div>
         </div>
@@ -84,7 +84,7 @@
             <div class="card-custom-title">
                 <i class="bi bi-car-front me-2 text-success"></i>Daftar Kendaraan
             </div>
-            <div class="card-custom-sub"><?= count($kendaraan) ?> kendaraan terdaftar</div>
+            <div class="card-custom-sub"><?= $total ?> kendaraan terdaftar</div>
         </div>
     </div>
 
@@ -103,94 +103,6 @@
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($kendaraan as $i => $k): ?>
-                <tr>
-                    <td><?= $i + 1 ?></td>
-                    <td>
-                        <div class="d-flex align-items-center gap-2">
-                            <?php
-                                $thumbSrc = null;
-                                if (!empty($k['thumbnail'])) {
-                                    $thumbSrc = base_url('uploads/kendaraan/' . $k['thumbnail']['nama_file']);
-                                } elseif (!empty($k['foto'])) {
-                                    $thumbSrc = base_url('uploads/kendaraan/' . $k['foto']);
-                                }
-                            ?>
-                            <?php if ($thumbSrc): ?>
-                            <img src="<?= $thumbSrc ?>" class="kendaraan-thumb" alt="">
-                            <?php else: ?>
-                            <div class="kendaraan-thumb-placeholder <?= $k['jenis'] ?>">
-                                <i class="bi <?= $k['jenis'] === 'motor' ? 'bi-bicycle' : 'bi-car-front' ?>"></i>
-                            </div>
-                            <?php endif; ?>
-                            <div>
-                                <div class="fw-500">
-                                    <?= esc($k['merk']) ?> <?= esc($k['model']) ?>
-                                    <?php if ($k['tahun_kendaraan']): ?>
-                                    <span class="text-muted" style="font-weight:400;font-size:.75rem;">
-                                        (<?= $k['tahun_kendaraan'] ?>)
-                                    </span>
-                                    <?php endif; ?>
-                                </div>
-                                <span class="badge-jenis <?= $k['jenis'] ?>">
-                                    <?= ucfirst($k['jenis']) ?>
-                                </span>
-                                <?php if ($k['warna']): ?>
-                                <span class="text-muted" style="font-size:.72rem;">
-                                    · <?= esc($k['warna']) ?>
-                                </span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </td>
-                    <td><code class="code-tag"><?= esc($k['kendaraan_kode']) ?></code></td>
-                    <td><span class="plat-nomor"><?= esc($k['plat_nomor']) ?></span></td>
-                    <td>
-                        <div class="fw-500" style="font-size:.83rem;"><?= esc($k['personel_nama']) ?></div>
-                        <div style="font-size:.73rem;color:#9ca3af;"><?= esc($k['pangkat_singkat']) ?> ·
-                            <?= esc($k['nrp']) ?>
-                        </div>
-                    </td>
-                    <td style="font-size:.8rem;color:#6b7280;"><?= esc($k['satker_singkat']) ?: '-' ?></td>
-                    <td>
-                        <?php if ($k['status'] === 'aktif'): ?>
-                        <span class="badge-status aktif"><span class="badge-dot"></span> Aktif</span>
-                        <?php else: ?>
-                        <span class="badge-status dibekukan"><span class="badge-dot"></span> Dibekukan</span>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <div class="action-wrap">
-                            <a href="<?= base_url('admin/kendaraan/edit/' . $k['uuid']) ?>" class="btn-action edit"
-                                title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            <button type="button"
-                                class="btn-action <?= $k['status'] === 'aktif' ? 'deactivate' : 'activate' ?> btn-toggle-status"
-                                data-uuid="<?= $k['uuid'] ?>" data-status="<?= $k['status'] ?>"
-                                data-plat="<?= esc($k['plat_nomor']) ?>"
-                                data-kendaraan="<?= esc($k['merk'] . ' ' . $k['model']) ?>"
-                                title="<?= $k['status'] === 'aktif' ? 'Bekukan' : 'Aktifkan' ?>">
-                                <i class="bi <?= $k['status'] === 'aktif' ? 'bi-lock' : 'bi-unlock' ?>"></i>
-                            </button>
-                            <button type="button" class="btn-action delete btn-delete-kendaraan"
-                                data-uuid="<?= $k['uuid'] ?>" data-plat="<?= esc($k['plat_nomor']) ?>"
-                                data-kendaraan="<?= esc($k['merk'] . ' ' . $k['model']) ?>" title="Hapus">
-                                <i class="bi bi-trash"></i>
-                            </button>
-
-                            <!-- <form action="<?= base_url('admin/kendaraan/delete/' . $k['uuid']) ?>" method="POST"
-                                class="d-inline"
-                                onsubmit="return confirmHapusKendaraan(this, '<?= esc($k['plat_nomor']) ?>')">
-                                <?= csrf_field() ?>
-                                <button type="submit" class="btn-action delete" title="Hapus">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form> -->
-                        </div>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
             </tbody>
         </table>
     </div>
@@ -1079,13 +991,59 @@ table.dataTable thead .sorting_desc::after {
 </style>
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
-<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/dataTables.bootstrap5.min.js"></script> -->
-
 <script>
 $(document).ready(function() {
-    $('#kendaraanTable').DataTable({
+
+    const table = $('#kendaraanTable').DataTable({
+        processing: true,
+        serverSide: true,
+        stateSave: true,
+        stateSaveParams: function(settings, data) {
+            data.order = [];
+        },
+        stateLoadParams: function(settings, data) {
+            data.order = [];
+        },
+        ajax: {
+            url: '<?= base_url('admin/kendaraan/datatables') ?>',
+            type: 'POST',
+            data: function(d) {
+                d['<?= csrf_token() ?>'] = '<?= csrf_hash() ?>';
+            },
+            error: function(xhr, err) {
+                console.error('DataTables AJAX error:', err);
+            }
+        },
+        columns: [{
+                data: 0,
+                orderable: false,
+                searchable: false
+            },
+            {
+                data: 1,
+                orderable: false
+            },
+            {
+                data: 2
+            },
+            {
+                data: 3
+            },
+            {
+                data: 4
+            },
+            {
+                data: 5
+            },
+            {
+                data: 6
+            },
+            {
+                data: 7,
+                orderable: false,
+                searchable: false
+            },
+        ],
         language: {
             search: "",
             searchPlaceholder: "Cari kendaraan...",
@@ -1095,6 +1053,7 @@ $(document).ready(function() {
             infoFiltered: "(difilter dari _MAX_ data)",
             zeroRecords: "Tidak ada kendaraan yang cocok",
             emptyTable: "Belum ada data kendaraan",
+            processing: '<div style="padding:1rem;color:#6b7280;font-size:.83rem;">Memuat data...</div>',
             paginate: {
                 first: "«",
                 last: "»",
@@ -1102,163 +1061,94 @@ $(document).ready(function() {
                 previous: "‹"
             }
         },
-
         pageLength: 10,
         lengthMenu: [10, 25, 50, 100],
-
-        columnDefs: [{
-                orderable: false,
-                searchable: false,
-                targets: [0, 7]
-            },
-            {
-                orderable: false,
-                targets: [1]
-            }
-        ],
-
         order: [],
-
         responsive: true,
-
-        // DOM: search (f) | length (l) — tabel (t) — info (i) | pagination (p)
         dom: '<"dt-top-wrap"fl>rt<"dt-bottom-wrap"ip>',
-
         drawCallback: function() {
-            // Tidak perlu hover manual — sudah ditangani CSS
+            bindDeleteModal();
+            bindToggleModal();
         }
     });
-});
 
-// =====================================
-// DELETE MODAL
-// =====================================
+    // ── Delete Modal ──
+    function bindDeleteModal() {
+        document.querySelectorAll('.btn-delete-kendaraan').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const uuid = this.dataset.uuid;
+                const plat = this.dataset.plat;
+                const kendaraan = this.dataset.kendaraan;
 
-const deleteModal = document.getElementById('deleteModal');
-const deleteForm = document.getElementById('deleteForm');
-const deleteText = document.getElementById('deleteText');
-const closeDeleteModal = document.getElementById('closeDeleteModal');
-
-document.querySelectorAll('.btn-delete-kendaraan').forEach(btn => {
-
-    btn.addEventListener('click', function() {
-
-        const uuid = this.dataset.uuid;
-        const plat = this.dataset.plat;
-        const kendaraan = this.dataset.kendaraan;
-
-        deleteText.innerHTML =
-            `Kendaraan <strong>${kendaraan}</strong><br>
-             dengan nomor polisi <strong>${plat}</strong><br>
-             akan dihapus secara permanen.`;
-
-        deleteForm.action =
-            "<?= base_url('admin/kendaraan/delete') ?>/" + uuid;
-
-        deleteModal.classList.add('show');
-    });
-});
-
-closeDeleteModal.addEventListener('click', () => {
-    deleteModal.classList.remove('show');
-});
-
-deleteModal.addEventListener('click', function(e) {
-    if (e.target === deleteModal) {
-        deleteModal.classList.remove('show');
-    }
-});
-
-// =====================================
-// TOGGLE STATUS MODAL
-// =====================================
-
-const toggleModal = document.getElementById('toggleModal');
-const toggleForm = document.getElementById('toggleForm');
-
-const toggleTitle = document.getElementById('toggleTitle');
-const toggleText = document.getElementById('toggleText');
-
-const toggleIcon = document.getElementById('toggleIcon');
-const toggleSubmitBtn = document.getElementById('toggleSubmitBtn');
-
-const closeToggleModal =
-    document.getElementById('closeToggleModal');
-
-document.querySelectorAll('.btn-toggle-status')
-    .forEach(btn => {
-
-        btn.addEventListener('click', function() {
-
-            const uuid = this.dataset.uuid;
-            const status = this.dataset.status;
-
-            const kendaraan =
-                this.dataset.kendaraan;
-
-            const plat =
-                this.dataset.plat;
-
-            toggleForm.action =
-                "<?= base_url('admin/kendaraan/toggle') ?>/" + uuid;
-
-            if (status === 'aktif') {
-
-                toggleTitle.innerHTML =
-                    'Bekukan Kendaraan';
-
-                toggleText.innerHTML =
+                document.getElementById('deleteText').innerHTML =
                     `Kendaraan <strong>${kendaraan}</strong><br>
                      dengan nomor polisi <strong>${plat}</strong><br>
-                     akan diubah menjadi <strong>Dibekukan</strong>.`;
+                     akan dihapus secara permanen.`;
 
-                toggleIcon.className =
-                    'custom-modal-icon deactivate';
+                document.getElementById('deleteForm').action =
+                    '<?= base_url('admin/kendaraan/delete') ?>/' + uuid;
 
-                toggleIcon.innerHTML =
-                    '<i class="bi bi-lock"></i>';
-
-                toggleSubmitBtn.className =
-                    'btn-modal-delete';
-
-                toggleSubmitBtn.innerHTML =
-                    '<i class="bi bi-lock me-1"></i> Bekukan';
-
-            } else {
-
-                toggleTitle.innerHTML =
-                    'Aktifkan Kendaraan';
-
-                toggleText.innerHTML =
-                    `Kendaraan <strong>${kendaraan}</strong><br>
-                     dengan nomor polisi <strong>${plat}</strong><br>
-                     akan diaktifkan kembali.`;
-
-                toggleIcon.className =
-                    'custom-modal-icon activate';
-
-                toggleIcon.innerHTML =
-                    '<i class="bi bi-unlock"></i>';
-
-                toggleSubmitBtn.className =
-                    'btn-modal-success';
-
-                toggleSubmitBtn.innerHTML =
-                    '<i class="bi bi-unlock me-1"></i> Aktifkan';
-            }
-
-            toggleModal.classList.add('show');
+                document.getElementById('deleteModal').classList.add('show');
+            });
         });
+    }
+
+    // ── Toggle Modal ──
+    function bindToggleModal() {
+        document.querySelectorAll('.btn-toggle-status').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const uuid = this.dataset.uuid;
+                const status = this.dataset.status;
+                const kendaraan = this.dataset.kendaraan;
+                const plat = this.dataset.plat;
+
+                document.getElementById('toggleForm').action =
+                    '<?= base_url('admin/kendaraan/toggle') ?>/' + uuid;
+
+                const toggleIcon = document.getElementById('toggleIcon');
+                const toggleTitle = document.getElementById('toggleTitle');
+                const toggleText = document.getElementById('toggleText');
+                const toggleSubmitBtn = document.getElementById('toggleSubmitBtn');
+
+                if (status === 'aktif') {
+                    toggleTitle.innerHTML = 'Bekukan Kendaraan';
+                    toggleText.innerHTML =
+                        `Kendaraan <strong>${kendaraan}</strong><br>dengan nomor polisi <strong>${plat}</strong><br>akan diubah menjadi <strong>Dibekukan</strong>.`;
+                    toggleIcon.className = 'custom-modal-icon deactivate';
+                    toggleIcon.innerHTML = '<i class="bi bi-lock"></i>';
+                    toggleSubmitBtn.className = 'btn-modal-delete';
+                    toggleSubmitBtn.innerHTML = '<i class="bi bi-lock me-1"></i> Bekukan';
+                } else {
+                    toggleTitle.innerHTML = 'Aktifkan Kendaraan';
+                    toggleText.innerHTML =
+                        `Kendaraan <strong>${kendaraan}</strong><br>dengan nomor polisi <strong>${plat}</strong><br>akan diaktifkan kembali.`;
+                    toggleIcon.className = 'custom-modal-icon activate';
+                    toggleIcon.innerHTML = '<i class="bi bi-unlock"></i>';
+                    toggleSubmitBtn.className = 'btn-modal-success';
+                    toggleSubmitBtn.innerHTML = '<i class="bi bi-unlock me-1"></i> Aktifkan';
+                }
+
+                document.getElementById('toggleModal').classList.add('show');
+            });
+        });
+    }
+
+    // ── Close modals ──
+    document.getElementById('closeDeleteModal').addEventListener('click', () => {
+        document.getElementById('deleteModal').classList.remove('show');
     });
 
-closeToggleModal.addEventListener('click', () => {
-    toggleModal.classList.remove('show');
-});
+    document.getElementById('deleteModal').addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('show');
+    });
 
-toggleModal.addEventListener('click', function(e) {
-    if (e.target === toggleModal) {
-        toggleModal.classList.remove('show');
-    }
+    document.getElementById('closeToggleModal').addEventListener('click', () => {
+        document.getElementById('toggleModal').classList.remove('show');
+    });
+
+    document.getElementById('toggleModal').addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('show');
+    });
 });
 </script>
 <?= $this->endSection() ?>

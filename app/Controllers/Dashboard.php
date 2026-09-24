@@ -13,6 +13,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use CodeIgniter\HTTP\RedirectResponse;
 
 class Dashboard extends BaseController
 {
@@ -130,6 +131,24 @@ class Dashboard extends BaseController
             'satker_belum_input' => $satkerBelumInput,
             'persentase_aktif'   => $pctSatkerAktif,
         ];
+
+        // ── Chart 5: Tren Input Data 7 Hari Terakhir ────────────
+        $chartTrenInput = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $tanggal = date('Y-m-d', strtotime("-{$i} days"));
+            $label   = $i === 0 ? 'Hari ini' : date('d M', strtotime("-{$i} days"));
+
+            // Menghitung data yang dibuat pada tanggal tersebut
+            $inputPersonel = $personelModel->where("DATE(created_at)", $tanggal)->countAllResults();
+            $inputKendaraan = $kendaraanModel->where("DATE(created_at)", $tanggal)->countAllResults();
+
+            $chartTrenInput[] = [
+                'label'     => $label,
+                'personel'  => $inputPersonel,
+                'kendaraan' => $inputKendaraan,
+            ];
+        }
+        $data['chart_tren_input'] = $chartTrenInput;
 
 
         return view('dashboard/admin', $data);
@@ -287,23 +306,21 @@ class Dashboard extends BaseController
                     ->setBody($fileData);
     }
 
-    public function petugasIndex(): string
+    public function petugasIndex()
     {
-        // Kalau akses dashboard dari mobile → arahkan ke scanner
-        $userAgent      = \Config\Services::request()->getUserAgent();
-        $mobileKeywords = ['Mobile','Android','iPhone','iPad','iPod','Tablet','Windows Phone'];
-
-        foreach ($mobileKeywords as $keyword) {
-            if (stripos($userAgent, $keyword) !== false) {
-                return redirect()->to('/petugas/scan/mobile');
-            }
+        $agent = $this->request->getUserAgent();
+        if ($agent->isMobile()) {
+            return redirect()->to('/petugas/scan/mobile');
         }
 
+        $userId   = session()->get('user_id');
         $logModel = new \App\Models\LogKeluarModel();
 
         $data = [
-            'title'        => 'Dashboard Petugas',
-            'log_hari_ini' => $logModel->getLogHariIniByPetugas(session()->get('user_id')),
+            'title'        => 'Dashboard Petugas Gate',
+            'log_hari_ini' => $logModel->getLogHariIniByPetugas($userId),
+            // Ambil seluruh log HARI INI saja milik petugas ini
+            'logs'         => $logModel->getLogHariIniByPetugasFull($userId),
         ];
 
         return view('dashboard/petugas', $data);

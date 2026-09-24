@@ -64,7 +64,7 @@
             <div class="card-custom-title">
                 <i class="bi bi-qr-code me-2 text-success"></i>Daftar QR Code
             </div>
-            <div class="card-custom-sub"><?= count($qrList) ?> QR terdaftar</div>
+            <div class="card-custom-sub"><?= $totalQr ?> QR terdaftar</div>
         </div>
         <div class="d-flex align-items-center gap-2 flex-wrap">
             <!-- Filter Status -->
@@ -80,16 +80,6 @@
             </div>
         </div>
     </div>
-
-    <?php if (empty($qrList)): ?>
-    <div class="empty-state">
-        <i class="bi bi-qr-code"></i>
-        <div>Belum ada QR Code yang di-generate</div>
-        <button class="btn-primary-custom mt-3" data-bs-toggle="modal" data-bs-target="#modalGenerate">
-            Generate QR Sekarang
-        </button>
-    </div>
-    <?php else: ?>
     <div class="table-responsive">
         <table class="table-custom" id="qrTable" style="width:100%">
             <thead>
@@ -104,108 +94,9 @@
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($qrList as $qr): ?>
-                <tr data-status="<?= $qr['status'] ?>">
-                    <td class="text-muted row-num"></td>
-
-                    <!-- Kendaraan -->
-                    <td>
-                        <div class="fw-500">
-                            <?= esc($qr['plat_nomor']) ?>
-                        </div>
-                        <div style="font-size:.75rem;color:#9ca3af;margin-top:1px;">
-                            <span class="badge-jenis <?= $qr['jenis'] ?? '' ?>">
-                                <?= ucfirst($qr['jenis'] ?? '-') ?>
-                            </span>
-                            <?= esc($qr['merk'] ?? '') ?> <?= esc($qr['model'] ?? '') ?>
-                        </div>
-                        <div style="font-size:.82rem;color:#9ca3af;">
-                            <code class="code-tag"><?= esc($qr['kendaraan_kode'] ?? '-') ?></code>
-                        </div>
-                    </td>
-
-                    <!-- Pemilik -->
-                    <td>
-                        <div class="d-flex align-items-center gap-2">
-                            <?php if (!empty($qr['personel_foto'])): ?>
-                            <img src="<?= base_url('uploads/personel/' . $qr['personel_foto']) ?>" class="avatar-photo"
-                                alt="">
-                            <?php else: ?>
-                            <div class="avatar-initial">
-                                <?= strtoupper(substr($qr['personel_nama'] ?? '?', 0, 1)) ?>
-                            </div>
-                            <?php endif; ?>
-                            <div>
-                                <div class="fw-500" style="font-size:.83rem;">
-                                    <?= esc($qr['personel_nama'] ?? '-') ?>
-                                </div>
-                                <div style="font-size:.73rem;color:#9ca3af;">
-                                    <?= esc($qr['pangkat_singkat'] ?? '') ?>
-                                    · <code><?= esc($qr['nrp'] ?? '') ?></code>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-
-                    <!-- Kode QR -->
-                    <td>
-                        <code class="kode-unik-tag">
-                            <?= substr($qr['kode_unik'], 0, 12) ?>...
-                        </code>
-                    </td>
-
-                    <!-- Status -->
-                    <td>
-                        <?php if ($qr['status'] === 'aktif'): ?>
-                        <span class="badge-status aktif">
-                            <span class="badge-dot"></span> Aktif
-                        </span>
-                        <?php else: ?>
-                        <span class="badge-status nonaktif">
-                            <span class="badge-dot"></span> Nonaktif
-                        </span>
-                        <?php endif; ?>
-                    </td>
-
-                    <!-- Generated -->
-                    <td style="font-size:.78rem;color:#6b7280;">
-                        <?= date('d M Y, H:i', strtotime($qr['generated_at'])) ?>
-                    </td>
-
-                    <!-- Aksi -->
-                    <td>
-                        <div class="action-wrap">
-                            <?php if ($qr['status'] === 'aktif'): ?>
-                            <!-- Download QR PNG -->
-                            <a href="<?= base_url('admin/qrcode/download/' . $qr['uuid']) ?>"
-                                class="btn-action download" title="Download QR PNG">
-                                <i class="bi bi-download"></i>
-                            </a>
-                            <!-- Regenerate -->
-                            <button type="button" class="btn-action regenerate" title="Regenerate QR"
-                                onclick="konfirmasiRegenerate('<?= base_url('admin/qrcode/generate/' . $qr['kendaraan_uuid']) ?>','<?= esc($qr['plat_nomor']) ?>')">
-                                <i class="bi bi-arrow-clockwise"></i>
-                            </button>
-                            <!-- Revoke -->
-                            <button type="button" class="btn-action revoke" title="Nonaktifkan QR"
-                                onclick="konfirmasiRevoke('<?= base_url('admin/qrcode/revoke/' . $qr['uuid']) ?>','<?= esc($qr['plat_nomor']) ?>')">
-                                <i class="bi bi-x-circle"></i>
-                            </button>
-                            <?php else: ?>
-                            <!-- Regenerate untuk QR nonaktif -->
-                            <button type="button" class="btn-action regenerate" title="Generate QR Baru"
-                                onclick="konfirmasiRegenerate('<?= base_url('admin/qrcode/generate/' . $qr['kendaraan_uuid']) ?>','<?= esc($qr['plat_nomor']) ?>')">
-                                <i class="bi bi-arrow-clockwise"></i>
-                            </button>
-                            <?php endif; ?>
-                        </div>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
             </tbody>
         </table>
     </div>
-    <?php endif; ?>
 </div>
 
 <!-- Modal Generate QR Baru (Single) -->
@@ -1071,25 +962,76 @@ table.dataTable.no-footer {
 <script>
 const CARI_KENDARAAN_URL = '<?= base_url('admin/qrcode/cariKendaraan') ?>';
 
-<?php if (!empty($qrList)): ?>
-let qrTable;
 
 $(document).ready(function() {
 
-    qrTable = $('#qrTable').DataTable({
-        language: {
-            lengthMenu: 'Tampilkan _MENU_ data',
-            info: 'Menampilkan _START_–_END_ dari _TOTAL_ QR Code',
-            infoEmpty: 'Tidak ada data',
-            infoFiltered: '(difilter dari _MAX_ total data)',
-            zeroRecords: 'Tidak ada data yang cocok',
-            emptyTable: 'Belum ada QR Code',
-            paginate: {
-                first: '«',
-                last: '»',
-                next: '›',
-                previous: '‹'
+    const table = $('#qrTable').DataTable({
+        processing: true,
+        serverSide: true,
+        stateSave: true,
+        stateSaveParams: function(settings, data) {
+            data.order = [];
+        },
+        stateLoadParams: function(settings, data) {
+            data.order = [];
+        },
+        initComplete: function() {
+            // Samakan isi kotak pencarian custom dengan pencarian yang tersimpan
+            document.getElementById('searchInput').value = this.api().search();
+        },
+        ajax: {
+            url: '<?= base_url('admin/qrcode/datatables') ?>',
+            type: 'POST',
+            data: function(d) {
+                d['<?= csrf_token() ?>'] = '<?= csrf_hash() ?>';
+                d['filter_status'] = document.getElementById('filterStatus').value;
             },
+            error: function(xhr, err) {
+                console.error('DataTables AJAX error:', err);
+            }
+        },
+        columns: [{
+                data: 0,
+                orderable: false,
+                searchable: false
+            },
+            {
+                data: 1
+            },
+            {
+                data: 2
+            },
+            {
+                data: 3
+            },
+            {
+                data: 4
+            },
+            {
+                data: 5
+            },
+            {
+                data: 6,
+                orderable: false,
+                searchable: false
+            },
+        ],
+        language: {
+            search: "",
+            searchPlaceholder: "Cari plat / nama / satuan...",
+            lengthMenu: "Tampilkan _MENU_ data",
+            info: "Menampilkan _START_–_END_ dari _TOTAL_ QR Code",
+            infoEmpty: "Tidak ada data",
+            infoFiltered: "(difilter dari _MAX_ total data)",
+            zeroRecords: "Tidak ada data yang cocok",
+            emptyTable: "Belum ada QR Code",
+            processing: '<div style="padding:1rem;color:#6b7280;font-size:.83rem;">Memuat data...</div>',
+            paginate: {
+                first: "«",
+                last: "»",
+                next: "›",
+                previous: "‹"
+            }
         },
         pageLength: 10,
         lengthMenu: [10, 25, 50, 100],
@@ -1098,48 +1040,22 @@ $(document).ready(function() {
         ],
         responsive: true,
         dom: '<"dt-top-wrap"l>rt<"dt-bottom-wrap"ip>',
-        columnDefs: [{
-                orderable: false,
-                searchable: false,
-                targets: [0]
-            },
-            {
-                orderable: false,
-                searchable: false,
-                targets: [6]
-            },
-        ],
-
-        drawCallback: function() {
-            const api = this.api();
-            const start = api.page.info().start;
-            api.column(0, {
-                page: 'current'
-            }).nodes().each(function(cell, i) {
-                cell.innerHTML = `<span style="color:#9ca3af;">${start + i + 1}</span>`;
-            });
-        },
     });
 
-    // ── Search custom ────────────────────────────────────
+    // ── Search custom ──
+    let searchTimer;
     document.getElementById('searchInput').addEventListener('input', function() {
-        qrTable.search(this.value).draw();
+        clearTimeout(searchTimer);
+        const keyword = this.value;
+        searchTimer = setTimeout(() => table.search(keyword).draw(), 350);
     });
 
-    // ── Filter Status ────────────────────────────────────
-    $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
-        const val = document.getElementById('filterStatus').value;
-        if (!val) return true;
-        const row = qrTable.row(dataIndex).node();
-        return $(row).data('status') === val;
-    });
-
+    // ── Filter Status — kirim ke server via ajax.data ──
     document.getElementById('filterStatus').addEventListener('change', function() {
-        qrTable.draw();
+        table.draw();
     });
 
 });
-<?php endif; ?>
 
 /* ════════════════════════════════════════
    MODAL DOWNLOAD ZIP PER SATKER (BARU)
@@ -1266,13 +1182,13 @@ document.getElementById('formGenerate').addEventListener('submit', function(e) {
 function konfirmasiRegenerate(actionUrl, platNomor) {
     document.getElementById('regeneratePlat').textContent = platNomor;
     document.getElementById('formRegenerate').action = actionUrl;
-    new bootstrap.Modal(document.getElementById('modalRegenerate')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalRegenerate')).show();
 }
 
 function konfirmasiRevoke(actionUrl, platNomor) {
     document.getElementById('revokePlat').textContent = platNomor;
     document.getElementById('formRevoke').action = actionUrl;
-    new bootstrap.Modal(document.getElementById('modalRevoke')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalRevoke')).show();
 }
 </script>
 <?= $this->endSection() ?>

@@ -65,8 +65,8 @@ class Pangkat extends BaseController
             'urutan'           => 'required|is_natural_no_zero',
             'nama_pangkat'     => 'required|max_length[100]|is_unique[pangkat.nama_pangkat]',
             'pangkat_singkat'  => 'required|max_length[20]',
-            'kategori'         => 'required|in_list[Militer,PNS,PPPK]',
-            'kelompok'         => 'required|in_list[Perwira,Bintara,Tamtama,PNS,PPPK]',
+            'kategori'         => 'required|in_list[Militer,PNS,PPPK,PHL]',
+            'kelompok'         => 'required|in_list[Perwira,Bintara,Tamtama,PNS,PPPK,PHL]',
             'golongan_militer' => 'permit_empty|max_length[50]',
         ];
 
@@ -134,8 +134,8 @@ class Pangkat extends BaseController
             'urutan'           => 'required|is_natural_no_zero',
             'nama_pangkat'     => "required|max_length[100]|is_unique[pangkat.nama_pangkat,id,{$id}]",
             'pangkat_singkat'  => 'required|max_length[20]',
-            'kategori'         => 'required|in_list[Militer,PNS,PPPK]',
-            'kelompok'         => 'required|in_list[Perwira,Bintara,Tamtama,PNS,PPPK]',
+            'kategori'         => 'required|in_list[Militer,PNS,PPPK,PHL]',
+            'kelompok'         => 'required|in_list[Perwira,Bintara,Tamtama,PNS,PPPK,PHL]',
             'golongan_militer' => 'permit_empty|max_length[50]',
         ];
 

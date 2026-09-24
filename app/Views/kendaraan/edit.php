@@ -103,7 +103,7 @@
                         <div class="form-group">
                             <label class="form-label-custom">Tahun</label>
                             <input type="number" name="tahun_kendaraan" class="form-input"
-                                value="<?= old('tahun_kendaraan', $kendaraan['tahun_kendaraan']) ?>" min="1990"
+                                value="<?= old('tahun_kendaraan', $kendaraan['tahun_kendaraan']) ?>" min="1950"
                                 max="<?= date('Y') ?>">
                         </div>
                     </div>

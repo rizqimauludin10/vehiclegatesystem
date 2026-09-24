@@ -71,6 +71,7 @@ class Auth extends BaseController
     }
 
     // ── Redirect Berdasarkan Role ──────────────────────────
+    // ── Redirect Berdasarkan Role ──────────────────────────
     private function redirectByRole(): \CodeIgniter\HTTP\RedirectResponse
     {
         $role = session()->get('role');
@@ -81,12 +82,16 @@ class Auth extends BaseController
         }
 
         switch ($role) {
+            case 'superadmin':
             case 'admin':
                 return redirect()->to('/admin/dashboard');
             case 'petugas':
                 return redirect()->to('/petugas/dashboard');
             default:
-                return redirect()->to('/auth/login');
+                // Role tidak dikenal: hapus session supaya tidak terjadi redirect loop
+                session()->remove(['logged_in', 'user_id', 'user_uuid', 'user_nama', 'username', 'role']);
+                return redirect()->to('/auth/login')
+                                ->with('error', 'Role akun tidak dikenali. Hubungi administrator.');
         }
     }
 

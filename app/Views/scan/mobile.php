@@ -952,6 +952,96 @@
     }
 
     /* ════════════════════════════════════════
+   DEVELOPER MODE — Red Theme
+════════════════════════════════════════ */
+    :root {
+        --dev-red: #f43f5e;
+        --dev-red-bg: rgba(244, 63, 94, .1);
+        --dev-red-bdr: rgba(244, 63, 94, .3);
+    }
+
+    .result-card.dev-mode {
+        border-color: var(--dev-red-bdr);
+        box-shadow: 0 0 24px rgba(244, 63, 94, .15);
+    }
+
+    .result-card.dev-mode .result-personel {
+        background: var(--dev-red-bg);
+        border-color: var(--dev-red-bdr);
+    }
+
+    .result-card.dev-mode .result-personel-foto {
+        border-color: var(--dev-red-bdr) !important;
+    }
+
+    .result-card.dev-mode .result-personel-foto-overlay {
+        background: linear-gradient(to top,
+                rgba(120, 10, 30, .92) 0%,
+                rgba(120, 10, 30, .3) 40%,
+                transparent 65%);
+    }
+
+    .result-card.dev-mode .personel-pangkat {
+        color: var(--dev-red);
+    }
+
+    .result-card.dev-mode .kendaraan-section-header {
+        background: var(--dev-red-bg);
+        border-color: var(--dev-red-bdr);
+    }
+
+    .result-card.dev-mode .kendaraan-count {
+        background: rgba(244, 63, 94, .15);
+        color: var(--dev-red);
+        border-color: var(--dev-red-bdr);
+    }
+
+    .badge-developer {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: linear-gradient(135deg, #be123c, #f43f5e);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 99px;
+        letter-spacing: .05em;
+        white-space: nowrap;
+        align-self: flex-start;
+        box-shadow: 0 2px 12px rgba(244, 63, 94, .4);
+    }
+
+    .dev-signature {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background: var(--dev-red-bg);
+        border-top: 1px solid var(--dev-red-bdr);
+        font-size: 11px;
+        color: var(--dev-red);
+        font-weight: 600;
+        letter-spacing: .04em;
+    }
+
+    .dev-signature i {
+        font-size: 13px;
+        opacity: .8;
+    }
+
+    .status-bar.dev-mode {
+        background: var(--dev-red-bg);
+        border-color: var(--dev-red-bdr);
+    }
+
+    .status-dot.dev {
+        background: var(--dev-red);
+        animation: pulse 1.8s infinite;
+    }
+
+    /* ════════════════════════════════════════
        RECENT LOG MINI
     ════════════════════════════════════════ */
     .log-section {
@@ -1606,6 +1696,12 @@
             <span class="status-count" id="scanCount">0 scan</span>
         </div>
 
+        <!-- Scan Lagi Button -->
+        <button class="btn-scan-lagi" id="btnScanLagi" onclick="resetAndScan()">
+            <i class="bi bi-arrow-clockwise"></i>
+            Scan Lagi
+        </button>
+
         <!-- Scanner Section -->
         <div class="scanner-section" id="scannerSection">
             <div class=" scanner-header">
@@ -1662,7 +1758,7 @@
                         <div class="personel-nrp" id="resNrp">-</div>
                         <div class="personel-meta" id="resMeta">-</div>
                     </div>
-                    <div class="badge-ok">
+                    <div id="resBadge" class="badge-ok">
                         <i class="bi bi-check-circle-fill"></i> AKSES OK
                     </div>
                 </div>
@@ -1698,12 +1794,6 @@
             <div class="error-msg" id="errorMsg">-</div>
         </div>
 
-        <!-- Scan Lagi Button -->
-        <button class="btn-scan-lagi" id="btnScanLagi" onclick="resetAndScan()">
-            <i class="bi bi-arrow-clockwise"></i>
-            Scan Lagi
-        </button>
-
         <!-- Recent Log Mini -->
         <div class="log-section">
             <div class="log-header">
@@ -1731,21 +1821,22 @@
     </div>
 
     <!-- html5-qrcode library -->
-    <!-- <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script> -->
     <script src="<?= base_url('vendor/qrcode/html5-qrcode.min.js') ?>"></script>
 
     <script>
     /* ════════════════════════════════════════════════
-   CONFIG
-════════════════════════════════════════════════ */
+    CONFIG
+    ════════════════════════════════════════════════ */
     const CONFIG = {
         processUrl: '<?= $process_url ?>',
         csrfToken: '<?= $csrf_token ?>',
         csrfHash: '<?= $csrf_hash ?>',
+        devNrp: ['137745', '199707152022031002'],
+
     };
 
     /* ════════════════════════════════════════════════
-       STATE
+    STATE
     ════════════════════════════════════════════════ */
     let html5QrCode = null;
     let isScanning = false;
@@ -1755,14 +1846,14 @@
     let logItems = [];
 
     /* ════════════════════════════════════════════════
-       CSRF REFRESH
+    CSRF REFRESH
     ════════════════════════════════════════════════ */
     function refreshCsrf(hash) {
         if (hash) CONFIG.csrfHash = hash;
     }
 
     /* ════════════════════════════════════════════════
-       STATUS HELPERS
+    STATUS HELPERS
     ════════════════════════════════════════════════ */
     function setStatus(type, text) {
         const bar = document.getElementById('statusBar');
@@ -1780,7 +1871,7 @@
     }
 
     /* ════════════════════════════════════════════════
-       AUDIO BEEP
+    AUDIO BEEP
     ════════════════════════════════════════════════ */
     function playBeep(freq, type, dur) {
         try {
@@ -1803,7 +1894,7 @@
     const beepError = () => playBeep(220, 'square', 280);
 
     /* ════════════════════════════════════════════════
-       SCANNER — START
+    SCANNER — START
     ════════════════════════════════════════════════ */
     async function startScanner() {
         if (isScanning) return;
@@ -1827,9 +1918,21 @@
             const cameras = await Html5Qrcode.getCameras();
             if (!cameras || !cameras.length) throw new Error('Kamera tidak ditemukan.');
 
-            const rearCam = cameras.find(c =>
-                /back|rear|environment/i.test(c.label)
-            ) || cameras[cameras.length - 1];
+            const rearCam =
+                // 1. Prioritas kamera belakang
+                cameras.find(c =>
+                    /back|rear|environment/i.test(c.label)
+                )
+
+                // 2. Kalau tidak ada, cari kamera bawaan Mac
+                ||
+                cameras.find(c =>
+                    /facetime|built.?in|macbook/i.test(c.label)
+                )
+
+                // 3. Kalau tetap tidak ada, gunakan kamera pertama
+                ||
+                cameras[0];
 
             await html5QrCode.start({
                     deviceId: {
@@ -1874,7 +1977,7 @@
     }
 
     /* ════════════════════════════════════════════════
-       SCANNER — STOP
+    SCANNER — STOP
     ════════════════════════════════════════════════ */
     async function stopScanner() {
         if (!isScanning || !html5QrCode) return;
@@ -1902,7 +2005,7 @@
     }
 
     /* ════════════════════════════════════════════════
-       TORCH TOGGLE
+    TORCH TOGGLE
     ════════════════════════════════════════════════ */
     async function toggleTorch() {
         if (!html5QrCode || !isScanning) return;
@@ -1923,7 +2026,7 @@
     }
 
     /* ════════════════════════════════════════════════
-       ON QR SUCCESS — callback dari html5-qrcode
+    ON QR SUCCESS — callback dari html5-qrcode
     ════════════════════════════════════════════════ */
     async function onQRSuccess(decodedText) {
         if (isProcessing) return;
@@ -1974,17 +2077,46 @@
     }
 
     /* ════════════════════════════════════════════════
-       SHOW SUCCESS
+    SHOW SUCCESS
     ════════════════════════════════════════════════ */
     function showSuccess(data) {
         const p = data.personel;
         const k = data.kendaraan;
 
+        // ── Developer mode detection ──
+        const isDevMode = CONFIG.devNrp.includes(String(p.nrp).trim());
+        const resultCard = document.getElementById('resultCard');
+
+        if (isDevMode) {
+            resultCard.classList.add('dev-mode');
+        } else {
+            resultCard.classList.remove('dev-mode');
+        }
+
+        const resBadge = document.getElementById('resBadge');
+        if (isDevMode) {
+            resBadge.className = 'badge-developer';
+            resBadge.innerHTML = '<i class="bi bi-code-slash"></i> DEVELOPER';
+        } else {
+            resBadge.className = 'badge-ok';
+            resBadge.innerHTML = '<i class="bi bi-check-circle-fill"></i> AKSES OK';
+        }
+
         // Sembunyikan scanner
         document.getElementById('scannerSection').classList.add('hidden');
         document.getElementById('qrFrame').style.display = 'none';
 
-        setStatus('success', `OK: ${k.plat_nomor}`);
+        isDevMode
+            ?
+            setStatus('dev', `DEV MODE · ${k.plat_nomor}`) :
+            setStatus('success', `OK: ${k.plat_nomor}`);
+
+        if (isDevMode) {
+            document.getElementById('statusBar').classList.add('dev-mode');
+        } else {
+            document.getElementById('statusBar').classList.remove('dev-mode');
+        }
+
 
         // ── Foto personel besar ──
         const fotoSection = document.getElementById('resFotoSection');
@@ -2030,7 +2162,7 @@
             '-';
 
         // ── Build kendaraan ──
-        buildKendaraanDetail(k);
+        buildKendaraanDetail(k, isDevMode);
 
         // ── Counter & log ──
         scanTotal++;
@@ -2049,7 +2181,7 @@
         isProcessing = false;
     }
 
-    function buildKendaraanDetail(k) {
+    function buildKendaraanDetail(k, isDevMode = false) {
         const container = document.getElementById('kendaraanList');
         const countBadge = document.getElementById('kendaraanCount');
 
@@ -2058,11 +2190,11 @@
         // ── Foto utama besar ──
         const thumbHtml = k.thumbnail_url ?
             `<img src="${escAttr(k.thumbnail_url)}" class="k-thumb-besar" alt=""
-               onclick="openLightbox('${escAttr(k.thumbnail_url)}',
-               'Foto Utama — ${escAttr(k.plat_nomor)}')">` :
+                onclick="openLightbox('${escAttr(k.thumbnail_url)}',
+                'Foto Utama — ${escAttr(k.plat_nomor)}')">` :
             `<div class="k-thumb-besar-placeholder ${k.jenis}">
-               <i class="bi ${k.jenis === 'motor' ? 'bi-bicycle' : 'bi-car-front'}"></i>
-           </div>`;
+                <i class="bi ${k.jenis === 'motor' ? 'bi-bicycle' : 'bi-car-front'}"></i>
+            </div>`;
 
         // ── Badge status ──
         const statusBadge = k.status === 'aktif' ?
@@ -2072,6 +2204,19 @@
         // ── Galeri foto kendaraan ──
         const hasGaleri = k.galeri_urls && k.galeri_urls.length > 0;
         const hasFotoStnk = !!k.foto_stnk_url;
+
+        // ── Dev signature di bawah kendaraan ──
+        if (isDevMode) {
+            const sig = document.createElement('div');
+            sig.className = 'dev-signature';
+            sig.innerHTML = `
+            <i class="bi bi-code-slash"></i>
+            Developed by Rizqi &nbsp;·&nbsp; VGS v1.0
+            &nbsp;·&nbsp;
+            <i class="bi bi-shield-check"></i>
+        `;
+            container.appendChild(sig);
+        }
 
         let galeriHtml = '';
         if (hasGaleri || hasFotoStnk) {
@@ -2084,7 +2229,7 @@
             const galeriItems = hasGaleri ?
                 k.galeri_urls.map((url, i) => `
                 <div class="galeri-item" onclick="openLightbox('${escAttr(url)}',
-                     '${escHtml(fotoLabels[i] || 'Foto ' + (i+1))} — ${escAttr(k.plat_nomor)}')">
+                    '${escHtml(fotoLabels[i] || 'Foto ' + (i+1))} — ${escAttr(k.plat_nomor)}')">
                     <img src="${escAttr(url)}" alt="Foto ${i+1}">
                     <div class="galeri-item-label">
                         ${escHtml(fotoLabels[i] || 'Foto ' + (i+1))}
@@ -2092,10 +2237,11 @@
                 </div>`).join('') :
                 '';
 
+
             const stnkItem = hasFotoStnk ? `
             <div class="galeri-item galeri-item-stnk"
-                 onclick="openLightbox('${escAttr(k.foto_stnk_url)}',
-                 'Foto STNK — ${escAttr(k.plat_nomor)}')">
+                onclick="openLightbox('${escAttr(k.foto_stnk_url)}',
+                'Foto STNK — ${escAttr(k.plat_nomor)}')">
                 <img src="${escAttr(k.foto_stnk_url)}" alt="STNK">
                 <div class="galeri-item-label stnk-label">
                     <i class="bi bi-file-earmark-text"></i> STNK
@@ -2158,7 +2304,7 @@
                 <div class="k-detail-cell">
                     <div class="k-detail-label">Warna</div>
                     <div class="k-detail-val" style="font-size:13px;">
-                        ${escHtml(k.warna || '-')}
+                        ${escHtml(k.warna || '-') + (k.tahun ? ' · ' + escHtml(k.tahun) : '')}
                     </div>
                 </div>
             </div>
@@ -2173,7 +2319,7 @@
     }
 
     /* ════════════════════════════════════════════════
-       BUILD KENDARAAN LIST
+    BUILD KENDARAAN LIST
     ════════════════════════════════════════════════ */
     function buildKendaraanList(list) {
         const container = document.getElementById('kendaraanList');
@@ -2198,8 +2344,8 @@
                 `<img src="${escAttr(k.thumbnail_url)}" class="k-thumb" alt=""
                     onclick="openLightbox('${escAttr(k.thumbnail_url)}','Foto — ${escAttr(k.plat_nomor)}')">` :
                 `<div class="k-thumb-placeholder ${k.jenis}">
-                   <i class="bi ${k.jenis === 'motor' ? 'bi-bicycle' : 'bi-car-front'}"></i>
-               </div>`;
+                <i class="bi ${k.jenis === 'motor' ? 'bi-bicycle' : 'bi-car-front'}"></i>
+                </div>`;
 
             // STNK
             const stnkHtml = k.nomor_stnk ? `
@@ -2222,12 +2368,12 @@
                 const imgs = hasGaleri ?
                     k.galeri_urls.map((url, i) =>
                         `<img src="${escAttr(url)}" class="strip-img" alt="Foto ${i+1}"
-                          onclick="openLightbox('${escAttr(url)}','Foto ${i+1} — ${escAttr(k.plat_nomor)}')">`
+                            onclick="openLightbox('${escAttr(url)}','Foto ${i+1} — ${escAttr(k.plat_nomor)}')">`
                     ).join('') :
                     '';
                 const stnkImg = hasFotoStnk ?
                     `<span class="strip-stnk-label">STNK</span>
-                   <img src="${escAttr(k.foto_stnk_url)}" class="strip-img stnk" alt="STNK"
+                    <img src="${escAttr(k.foto_stnk_url)}" class="strip-img stnk" alt="STNK"
                         onclick="openLightbox('${escAttr(k.foto_stnk_url)}','STNK — ${escAttr(k.plat_nomor)}')">` :
                     '';
                 stripHtml = `<div class="k-foto-strip">${imgs}${stnkImg}</div>`;
@@ -2261,7 +2407,7 @@
     }
 
     /* ════════════════════════════════════════════════
-       SHOW ERROR
+    SHOW ERROR
     ════════════════════════════════════════════════ */
     function showError(msg) {
         setStatus('error', 'QR Tidak Dikenali');
@@ -2279,10 +2425,12 @@
     }
 
     /* ════════════════════════════════════════════════
-       RESET & SCAN LAGI
+    RESET & SCAN LAGI
     ════════════════════════════════════════════════ */
     async function resetAndScan() {
         // Sembunyikan hasil, tampilkan scanner kembali
+        document.getElementById('resultCard').classList.remove('show', 'dev-mode');
+        document.getElementById('statusBar').classList.remove('dev-mode');
         document.getElementById('resultCard').classList.remove('show');
         document.getElementById('errorCard').classList.remove('show');
         document.getElementById('btnScanLagi').classList.remove('show');
@@ -2311,7 +2459,7 @@
     }
 
     /* ════════════════════════════════════════════════
-       LOG MINI
+    LOG MINI
     ════════════════════════════════════════════════ */
     function addLogItem(personel, kendaraan, scanTime) {
         logItems.unshift({
@@ -2346,7 +2494,7 @@
     }
 
     /* ════════════════════════════════════════════════
-       LIGHTBOX
+    LIGHTBOX
     ════════════════════════════════════════════════ */
     function openLightbox(url, caption) {
         document.getElementById('lightboxImg').src = url;
@@ -2363,7 +2511,7 @@
     });
 
     /* ════════════════════════════════════════════════
-       XSS HELPERS
+    XSS HELPERS
     ════════════════════════════════════════════════ */
     function escHtml(str) {
         if (!str) return '';
@@ -2379,10 +2527,10 @@
     </script>
 
     <!-- ═══════════════════════════════════════════════════════
-     PWA SERVICE WORKER REGISTER
-     Paste tepat sebelum </body>
-     di file view: app/Views/Scan/mobile.php
-════════════════════════════════════════════════════════ -->
+    PWA SERVICE WORKER REGISTER
+    Paste tepat sebelum </body>
+    di file view: app/Views/Scan/mobile.php
+    ════════════════════════════════════════════════════════ -->
     <script>
     (function() {
         if (!('serviceWorker' in navigator)) {
@@ -2397,6 +2545,17 @@
                 })
                 .then(function(reg) {
                     console.log('[PWA] SW registered ✓ scope:', reg.scope);
+
+                    // Simpan halaman scanner ke cache supaya bisa dibuka offline,
+                    // termasuk sejak kunjungan pertama
+                    navigator.serviceWorker.ready.then(function(readyReg) {
+                        if (readyReg.active) {
+                            readyReg.active.postMessage({
+                                type: 'CACHE_PAGE',
+                                url: location.pathname
+                            });
+                        }
+                    });
 
                     // Deteksi update SW — kalau ada versi baru, reload otomatis
                     reg.addEventListener('updatefound', function() {

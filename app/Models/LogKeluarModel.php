@@ -101,6 +101,53 @@ class LogKeluarModel extends Model
                     ->getResultArray();
     }
 
+        // ──────────────────────────────────────────────────────────
+    // Get log terbaru by petugas DENGAN PAGINATION
+    // ──────────────────────────────────────────────────────────
+    public function getLogTerbaruByPetugasPaginated(int $petugasId, int $perPage = 10): array
+    {
+        return $this->select('
+                        log_keluar.*,
+                        k.plat_nomor,
+                        k.jenis,
+                        k.merk,
+                        k.model,
+                        k.kendaraan_kode,
+                        p.nama          as personel_nama,
+                        p.nrp,
+                        p.id            as personel_id,
+                        p.foto          as personel_foto,
+                        pk.pangkat_singkat,
+                        pk.nama_pangkat,
+                        pk.kelompok     as pangkat_kelompok,
+                        sk.nama_singkat as satker_singkat,
+                        sk.kode_satker,
+                        u.nama          as petugas_nama
+                    ')
+                    ->join('kendaraan k',     'k.id = log_keluar.kendaraan_id',  'left')
+                    ->join('personel p',      'p.id = k.personel_id',            'left')
+                    ->join('pangkat pk',      'pk.id = p.pangkat_id',            'left')
+                    ->join('satuan_kerja sk', 'sk.id = p.satker_id',             'left')
+                    ->join('users u',         'u.id = log_keluar.petugas_id',     'left')
+                    ->where('log_keluar.petugas_id', $petugasId)
+                    ->where('DATE(log_keluar.timestamp_keluar)', date('Y-m-d'))
+                    ->orderBy('log_keluar.timestamp_keluar', 'DESC')
+                    ->paginate($perPage, 'logs');
+    }
+
+        // ──────────────────────────────────────────────────────────
+    // Get SEMUA log hari ini by petugas (untuk DataTables Petugas)
+    // ──────────────────────────────────────────────────────────
+    public function getLogHariIniByPetugasFull(int $petugasId): array
+    {
+        return $this->baseJoin()
+                    ->where('l.petugas_id', $petugasId)
+                    ->where('DATE(l.timestamp_keluar)', date('Y-m-d'))
+                    ->orderBy('l.timestamp_keluar', 'DESC')
+                    ->get()
+                    ->getResultArray();
+    }
+
     // ──────────────────────────────────────────────────────────
     // Get log dengan filter lengkap (untuk laporan)
     // ──────────────────────────────────────────────────────────

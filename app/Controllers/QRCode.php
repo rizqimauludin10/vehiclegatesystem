@@ -44,18 +44,195 @@ class QRCode extends BaseController
     public function index(): string
     {
         $db = \Config\Database::connect();
-        
+
         $data = [
-            'title'              => 'Management QR Code',
-            'qrList'             => $this->qrModel->getAllWithDetail(),
-            'kendaraanList'      => $this->kendaraanModel->getAllWithPersonel(),
-            'satkerList'         => $db->table('satuan_kerja')->orderBy('nama_singkat', 'ASC')->get()->getResultArray(),
-            'totalQrAktif'       => $this->qrModel->countAktif(),
-            'totalKendaraan'     => $this->kendaraanModel->countAktif(),
-            'kendaraanTanpaQR'   => count($this->qrModel->getKendaraanTanpaQR()),
+            'title'            => 'Management QR Code',
+            'satkerList'       => $db->table('satuan_kerja')->orderBy('nama_singkat', 'ASC')->get()->getResultArray(),
+            'totalQrAktif'     => $this->qrModel->countAktif(),
+            'totalKendaraan'   => $this->kendaraanModel->countAktif(),
+            'kendaraanTanpaQR' => count($this->qrModel->getKendaraanTanpaQR()),
+            'totalQr'          => $this->qrModel->countAllResults(),
         ];
 
         return view('qrcode/index', $data);
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // DATATABLES SERVER-SIDE
+    // POST /admin/qrcode/datatables
+    // ──────────────────────────────────────────────────────────
+    public function datatables()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(403);
+        }
+
+        $draw   = (int) $this->request->getPost('draw');
+        $start  = (int) $this->request->getPost('start');
+        $length = (int) $this->request->getPost('length');
+        $search = $this->request->getPost('search')['value'] ?? '';
+        $order  = $this->request->getPost('order')[0] ?? [];
+        $status = $this->request->getPost('filter_status') ?? '';
+
+        // Kolom sortable
+        $columns = [
+            1 => 'k.plat_nomor',
+            2 => 'p.nama',
+            3 => 'q.kode_unik',
+            4 => 'q.status',
+            5 => 'q.generated_at',
+        ];
+
+        $orderIndex = isset($order['column']) ? (int) $order['column'] : null;
+        $orderCol   = ($orderIndex !== null && isset($columns[$orderIndex])) ? $columns[$orderIndex] : null;
+        $orderDir   = strtolower($order['dir'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
+
+        $db = \Config\Database::connect();
+
+        // Base query
+        $baseQuery = $db->table('qrcode q')
+            ->select('
+                q.uuid, q.kode_unik, q.status,
+                q.generated_at,
+                k.plat_nomor, k.jenis, k.merk,
+                k.model, k.warna, k.kendaraan_kode,
+                k.uuid as kendaraan_uuid,
+                k.status as kendaraan_status,
+                p.nama as personel_nama,
+                p.nrp,
+                p.foto as personel_foto,
+                pk.pangkat_singkat,
+                sk.nama_singkat as satker_singkat
+            ')
+            ->join('kendaraan k',    'k.id = q.kendaraan_id',  'left')
+            ->join('personel p',     'p.id = k.personel_id',   'left')
+            ->join('pangkat pk',     'pk.id = p.pangkat_id',   'left')
+            ->join('satuan_kerja sk', 'sk.id = p.satker_id',   'left');
+
+        // Total semua data
+        $totalAll = (clone $baseQuery)->countAllResults(false);
+
+        // Filter status
+        if (!empty($status)) {
+            $baseQuery->where('q.status', $status);
+        }
+
+        // Filter search
+        if (!empty($search)) {
+            $baseQuery->groupStart()
+                ->like('k.plat_nomor',     $search)
+                ->orLike('k.kendaraan_kode', $search)
+                ->orLike('k.merk',           $search)
+                ->orLike('k.model',          $search)
+                ->orLike('p.nama',           $search)
+                ->orLike('p.nrp',            $search)
+                ->orLike('sk.nama_singkat',  $search)
+            ->groupEnd();
+        }
+
+        // Total setelah filter
+        $totalFiltered = (clone $baseQuery)->countAllResults(false);
+
+        // Ambil data dengan urutan & limit
+        if ($orderCol) {
+            $baseQuery->orderBy($orderCol, $orderDir);
+        }
+
+        // Default & tie-breaker: QR terbaru di atas
+        $baseQuery->orderBy('q.generated_at', 'DESC')
+                ->orderBy('q.id', 'DESC');
+
+        if ($length !== -1) {
+            $baseQuery->limit($length, $start);
+        }
+
+        $data = $baseQuery->get()->getResultArray();
+
+        // Build rows
+        $rows = [];
+        foreach ($data as $i => $qr) {
+            $uuid         = esc($qr['uuid']);
+            $plat         = esc($qr['plat_nomor'] ?? '-');
+            $kendaraanUuid = esc($qr['kendaraan_uuid'] ?? '');
+
+            // Avatar personel
+            $avatar = !empty($qr['personel_foto'])
+                ? '<img src="' . base_url('uploads/personel/' . $qr['personel_foto']) . '" class="avatar-photo" alt="">'
+                : '<div class="avatar-initial">' . strtoupper(substr($qr['personel_nama'] ?? '?', 0, 1)) . '</div>';
+
+            // Status badge
+            $statusBadge = $qr['status'] === 'aktif'
+                ? '<span class="badge-status aktif"><span class="badge-dot"></span> Aktif</span>'
+                : '<span class="badge-status nonaktif"><span class="badge-dot"></span> Nonaktif</span>';
+
+            // Kolom kendaraan
+            $kendaraanCol = '
+                <div class="fw-500">' . $plat . '</div>
+                <div style="font-size:.75rem;color:#9ca3af;margin-top:1px;">
+                    <span class="badge-jenis ' . esc($qr['jenis'] ?? '') . '">' . ucfirst($qr['jenis'] ?? '-') . '</span>
+                    ' . esc($qr['merk'] ?? '') . ' ' . esc($qr['model'] ?? '') . '
+                </div>
+                <div style="font-size:.82rem;color:#9ca3af;">
+                    <code class="code-tag">' . esc($qr['kendaraan_kode'] ?? '-') . '</code>
+                </div>';
+
+            // Kolom pemilik
+            $pemilikCol = '
+                <div class="d-flex align-items-center gap-2">
+                    ' . $avatar . '
+                    <div>
+                        <div class="fw-500" style="font-size:.83rem;">' . esc($qr['personel_nama'] ?? '-') . '</div>
+                        <div style="font-size:.73rem;color:#9ca3af;">
+                            ' . esc($qr['pangkat_singkat'] ?? '') . '
+                            · <code>' . esc($qr['nrp'] ?? '') . '</code>
+                        </div>
+                    </div>
+                </div>';
+
+            // Kolom aksi
+            $aksiCol = '<div class="action-wrap">';
+            if ($qr['status'] === 'aktif') {
+                $aksiCol .= '
+                    <a href="' . base_url('admin/qrcode/download/' . $uuid) . '"
+                        class="btn-action download" title="Download QR PNG">
+                        <i class="bi bi-download"></i>
+                    </a>
+                    <button type="button" class="btn-action regenerate" title="Regenerate QR"
+                        onclick="konfirmasiRegenerate(\'' . base_url('admin/qrcode/generate/' . $kendaraanUuid) . '\',\'' . $plat . '\')">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                    <button type="button" class="btn-action revoke" title="Nonaktifkan QR"
+                        onclick="konfirmasiRevoke(\'' . base_url('admin/qrcode/revoke/' . $uuid) . '\',\'' . $plat . '\')">
+                        <i class="bi bi-x-circle"></i>
+                    </button>';
+            } else {
+                $aksiCol .= '
+                    <button type="button" class="btn-action regenerate" title="Generate QR Baru"
+                        onclick="konfirmasiRegenerate(\'' . base_url('admin/qrcode/generate/' . $kendaraanUuid) . '\',\'' . $plat . '\')">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>';
+            }
+            $aksiCol .= '</div>';
+
+            $rows[] = [
+                $start + $i + 1,
+                $kendaraanCol,
+                $pemilikCol,
+                '<code class="kode-unik-tag">' . substr($qr['kode_unik'], 0, 12) . '...</code>',
+                $statusBadge,
+                '<span style="font-size:.78rem;color:#6b7280;">'
+                    . date('d M Y, H:i', strtotime($qr['generated_at']))
+                    . '</span>',
+                $aksiCol,
+            ];
+        }
+
+        return $this->response->setJSON([
+            'draw'            => $draw,
+            'recordsTotal'    => $totalAll,
+            'recordsFiltered' => $totalFiltered,
+            'data'            => $rows,
+        ]);
     }
 
     // ──────────────────────────────────────────────────────────
@@ -138,6 +315,17 @@ class QRCode extends BaseController
         if (!$kendaraan) {
             return redirect()->to('/admin/qrcode')
                              ->with('error', 'Kendaraan tidak ditemukan.');
+        }
+
+        if ($kendaraan['status'] !== 'aktif') {
+            return redirect()->to('/admin/qrcode')
+                            ->with('error', "Kendaraan {$kendaraan['plat_nomor']} sedang dibekukan. Aktifkan dulu sebelum generate QR.");
+        }
+
+        $personel = $this->personelModel->find($kendaraan['personel_id']);
+        if (!$personel || $personel['status'] !== 'aktif') {
+            return redirect()->to('/admin/qrcode')
+                            ->with('error', 'Pemilik kendaraan berstatus nonaktif. QR tidak dapat di-generate.');
         }
 
         // Revoke semua QR lama milik kendaraan ini

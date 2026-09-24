@@ -29,29 +29,196 @@ class Kendaraan extends BaseController
         $this->fotoModel      = new KendaraanFotoModel();
         $this->personelModel  = new PersonelModel();
         $this->qrcodeModel  = new QRCodeModel();
+        $this->db = \Config\Database::connect();
     }
 
     // ──────────────────────────────────────────────────────────
     // INDEX
     // ──────────────────────────────────────────────────────────
+
     public function index(): string
     {
         $byJenis = $this->kendaraanModel->countByJenis();
-
-        // Inject thumbnail ke setiap kendaraan
-        $kendaraan = $this->kendaraanModel->getAllWithPersonel();
-        foreach ($kendaraan as &$k) {
-            $k['thumbnail'] = $this->fotoModel->getThumbnail($k['id']);
-        }
+        $total   = $this->kendaraanModel->countAllResults();
 
         $data = [
             'title'       => 'Management Kendaraan',
-            'kendaraan'   => $kendaraan,
+            'total'       => $total,
             'total_motor' => $byJenis['motor'],
             'total_mobil' => $byJenis['mobil'],
         ];
 
         return view('kendaraan/index', $data);
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // DATATABLES SERVER-SIDE
+    // POST /admin/kendaraan/datatables
+    // ──────────────────────────────────────────────────────────
+    public function datatables()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(403);
+        }
+
+        $draw   = (int) $this->request->getPost('draw');
+        $start  = (int) $this->request->getPost('start');
+        $length = (int) $this->request->getPost('length');
+        $search = $this->request->getPost('search')['value'] ?? '';
+        $order  = $this->request->getPost('order')[0] ?? [];
+
+        // Kolom sortable (index sesuai kolom di view)
+        $columns = [
+            2 => 'k.kendaraan_kode',
+            3 => 'k.plat_nomor',
+            4 => 'p.nama',
+            5 => 'sk.nama_singkat',
+            6 => 'k.status',
+        ];
+
+
+        $orderIndex = isset($order['column']) ? (int) $order['column'] : null;
+        $orderCol   = ($orderIndex !== null && isset($columns[$orderIndex])) ? $columns[$orderIndex] : null;
+        $orderDir   = strtolower($order['dir'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
+
+        $db = \Config\Database::connect();
+
+        // Base query
+        $baseQuery = $db->table('kendaraan k')
+        ->select('
+            k.id, k.uuid, k.kendaraan_kode,
+            k.plat_nomor, k.jenis, k.merk,
+            k.model, k.warna, k.tahun_kendaraan,
+            k.status,
+            p.nama as personel_nama,
+            p.nrp,
+            pk.pangkat_singkat,
+            sk.nama_singkat as satker_singkat,
+            (SELECT kf.nama_file FROM kendaraan_foto kf
+            WHERE kf.kendaraan_id = k.id
+            ORDER BY kf.urutan ASC LIMIT 1) as thumb_file
+        ', false)
+            ->join('personel p',     'p.id = k.personel_id', 'left')
+            ->join('pangkat pk',     'pk.id = p.pangkat_id', 'left')
+            ->join('satuan_kerja sk', 'sk.id = p.satker_id', 'left');
+
+        // Total semua data
+        $totalAll = (clone $baseQuery)->countAllResults(false);
+
+        // Filter search
+        if (!empty($search)) {
+            $baseQuery->groupStart()
+                ->like('k.plat_nomor',      $search)
+                ->orLike('k.kendaraan_kode', $search)
+                ->orLike('k.merk',           $search)
+                ->orLike('k.model',          $search)
+                ->orLike('p.nama',           $search)
+                ->orLike('p.nrp',            $search)
+                ->orLike('sk.nama_singkat',  $search)
+            ->groupEnd();
+        }
+
+        // Total setelah filter
+        $totalFiltered = (clone $baseQuery)->countAllResults(false);
+
+        // Ambil data dengan urutan & limit
+        if ($orderCol) {
+            $baseQuery->orderBy($orderCol, $orderDir);
+        }
+
+        $baseQuery->orderBy('COALESCE(k.updated_at, k.created_at)', 'DESC', false)
+                ->orderBy('k.id', 'DESC');
+
+        if ($length !== -1) {
+            $baseQuery->limit($length, $start);
+        }
+
+        $data = $baseQuery->get()->getResultArray();
+
+        // Build rows
+        $rows = [];
+        foreach ($data as $i => $k) {
+            $uuid      = esc($k['uuid']);
+            $plat      = esc($k['plat_nomor']);
+            $kendaraan = esc(trim($k['merk'] . ' ' . $k['model']));
+
+            // Thumbnail — ambil dari kendaraan_foto
+            $thumb = $db->table('kendaraan_foto')
+                ->where('kendaraan_id', $k['id'])
+                ->orderBy('urutan', 'ASC')
+                ->limit(1)
+                ->get()
+                ->getRowArray();
+
+                $thumbHtml = $k['thumb_file']
+                ? '<img src="' . base_url('uploads/kendaraan/' . esc($k['thumb_file'])) . '" class="kendaraan-thumb" alt="">'
+                : '<div class="kendaraan-thumb-placeholder ' . $k['jenis'] . '">
+                    <i class="bi ' . ($k['jenis'] === 'motor' ? 'bi-bicycle' : 'bi-car-front') . '"></i>
+                </div>';
+
+            // Kolom kendaraan
+            $tahun     = $k['tahun_kendaraan'] ? '<span class="text-muted" style="font-weight:400;font-size:.75rem;">(' . $k['tahun_kendaraan'] . ')</span>' : '';
+            $warna     = $k['warna'] ? '<span class="text-muted" style="font-size:.72rem;">· ' . esc($k['warna']) . '</span>' : '';
+            $kendaraanCol = '
+                <div class="d-flex align-items-center gap-2">
+                    ' . $thumbHtml . '
+                    <div>
+                        <div class="fw-500">' . esc($k['merk']) . ' ' . esc($k['model']) . ' ' . $tahun . '</div>
+                        <span class="badge-jenis ' . $k['jenis'] . '">' . ucfirst($k['jenis']) . '</span>
+                        ' . $warna . '
+                    </div>
+                </div>';
+
+            // Status badge
+            $statusBadge = $k['status'] === 'aktif'
+                ? '<span class="badge-status aktif"><span class="badge-dot"></span> Aktif</span>'
+                : '<span class="badge-status dibekukan"><span class="badge-dot"></span> Dibekukan</span>';
+
+            // Toggle button
+            $toggleClass = $k['status'] === 'aktif' ? 'deactivate' : 'activate';
+            $toggleIcon  = $k['status'] === 'aktif' ? 'bi-lock' : 'bi-unlock';
+            $toggleUrl   = base_url('admin/kendaraan/toggle/' . $uuid);
+
+            $rows[] = [
+                $start + $i + 1,
+                $kendaraanCol,
+                '<code class="code-tag">' . esc($k['kendaraan_kode']) . '</code>',
+                '<span class="plat-nomor">' . $plat . '</span>',
+                '<div class="fw-500" style="font-size:.83rem;">' . esc($k['personel_nama']) . '</div>
+                <div style="font-size:.73rem;color:#9ca3af;">' . esc($k['pangkat_singkat']) . ' · ' . esc($k['nrp']) . '</div>',
+                '<span style="font-size:.8rem;color:#6b7280;">' . (esc($k['satker_singkat']) ?: '-') . '</span>',
+                $statusBadge,
+                '<div class="action-wrap">
+                    <a href="' . base_url('admin/kendaraan/edit/' . $uuid) . '" class="btn-action edit" title="Edit">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <button type="button"
+                        class="btn-action ' . $toggleClass . ' btn-toggle-status"
+                        data-uuid="' . $uuid . '"
+                        data-status="' . $k['status'] . '"
+                        data-plat="' . $plat . '"
+                        data-kendaraan="' . $kendaraan . '"
+                        title="' . ($k['status'] === 'aktif' ? 'Bekukan' : 'Aktifkan') . '">
+                        <i class="bi ' . $toggleIcon . '"></i>
+                    </button>
+                    <button type="button"
+                        class="btn-action delete btn-delete-kendaraan"
+                        data-uuid="' . $uuid . '"
+                        data-plat="' . $plat . '"
+                        data-kendaraan="' . $kendaraan . '"
+                        title="Hapus">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>',
+            ];
+        }
+
+        return $this->response->setJSON([
+            'draw'            => $draw,
+            'recordsTotal'    => $totalAll,
+            'recordsFiltered' => $totalFiltered,
+            'data'            => $rows,
+        ]);
     }
 
     // ──────────────────────────────────────────────────────────
@@ -93,7 +260,7 @@ class Kendaraan extends BaseController
             'nomor_mesin'     => 'permit_empty|max_length[50]',
             'nomor_bpkb'      => 'permit_empty|max_length[50]',
             'nomor_stnk'      => 'permit_empty|max_length[50]',
-            'tahun_kendaraan' => 'permit_empty|integer|greater_than[1900]',
+            'tahun_kendaraan' => 'permit_empty|integer|greater_than_equal_to[1950]|less_than_equal_to[' . date('Y') . ']',
             'foto_stnk'       => 'permit_empty|uploaded[foto_stnk]|max_size[foto_stnk,3072]|is_image[foto_stnk]',
         ];
 
@@ -156,7 +323,7 @@ class Kendaraan extends BaseController
     // ──────────────────────────────────────────────────────────
     // EDIT
     // ──────────────────────────────────────────────────────────
-    public function edit(string $uuid): string
+    public function edit(string $uuid)
     {
         $kendaraan = $this->kendaraanModel->getDetailByUuid($uuid);
 
@@ -203,7 +370,7 @@ class Kendaraan extends BaseController
             'nomor_mesin'     => 'permit_empty|max_length[50]',
             'nomor_bpkb'      => 'permit_empty|max_length[50]',
             'nomor_stnk'      => 'permit_empty|max_length[50]',
-            'tahun_kendaraan' => 'permit_empty|integer|greater_than[1900]',
+            'tahun_kendaraan' => 'permit_empty|integer|greater_than_equal_to[1950]|less_than_equal_to[' . date('Y') . ']',
             'foto_stnk'       => 'permit_empty|uploaded[foto_stnk]|max_size[foto_stnk,3072]|is_image[foto_stnk]',
         ];
 
@@ -327,10 +494,9 @@ class Kendaraan extends BaseController
         $newStatus = $kendaraan['status'] === 'aktif' ? 'dibekukan' : 'aktif';
         $label     = $newStatus === 'aktif' ? 'diaktifkan' : 'dibekukan';
 
-        $this->kendaraanModel->update($kendaraan['id'], [
-            'status'     => $newStatus,
-            'updated_at' => date('Y-m-d H:i:s'),
-        ]);
+        $this->db->table('kendaraan')
+            ->where('id', $kendaraan['id'])
+            ->update(['status' => $newStatus]);
 
         return redirect()->to('/admin/kendaraan')
                         ->with('success', "Kendaraan berhasil {$label}.");
@@ -506,6 +672,10 @@ class Kendaraan extends BaseController
             $personel = $db->table('personel')->where('nrp', $nrp)->get()->getRowArray();
             if (!$personel) {
                 $errorList[] = "Baris {$rowIdx}: Personel dengan NRP <strong>{$nrp}</strong> tidak ditemukan di database.";
+                continue;
+            }
+            if ($personel['status'] !== 'aktif') {
+                $errorList[] = "Baris {$rowIdx}: Personel dengan NRP <strong>{$nrp}</strong> berstatus nonaktif.";
                 continue;
             }
             // Cek Plat Nomor duplikat

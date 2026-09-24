@@ -1,31 +1,40 @@
 /**
  * sw.js — VGS Vehicle Gate System
- * Ganti file sw.js lama kamu dengan ini
+ *
+ * Perubahan dari versi 1.0.0:
+ * - Download (backup SQL/ZIP, QR PNG, template Excel) tidak lagi dicegat SW,
+ *   browser langsung mengambil dari server.
+ * - Hanya halaman HTML yang di-cache. File download tidak pernah masuk cache.
+ * - Response hasil redirect (misal session habis → login) tidak di-cache.
+ * - Request lain yang tidak dikenali dibiarkan ke browser (tidak lagi
+ *   dibungkus fetch().catch(() => {}) yang bisa menghasilkan error kosong).
+ * - VERSION dinaikkan supaya cache lama (yang mungkin berisi file backup)
+ *   otomatis dihapus saat SW baru aktif.
  */
 
-const VERSION = "vgs-v1.0.0";
+const VERSION = "vgs-v1.1.1";
 const CACHE_STATIC = `${VERSION}-static`;
 const CACHE_PAGES = `${VERSION}-pages`;
 
 // ─── Asset statis yang di-cache saat SW install ───────────
-const PRECACHE = [
-  "/petugas/scan/mobile",
-  "/assets/icons/icon-192.png",
-  "/assets/icons/icon-512.png",
-];
+const PRECACHE = ["/assets/icons/icon-192.png", "/assets/icons/icon-512.png"];
 
-// ─── URL yang TIDAK boleh di-cache (selalu ke network) ────
+// ─── URL yang TIDAK boleh disentuh SW sama sekali ─────────
+// Browser langsung ke server, tanpa cache, tanpa fallback offline.
 const BYPASS = [
-  "/petugas/scan/process", // POST API scan — harus selalu hit server
+  "/petugas/scan/process", // API scan — harus selalu hit server
   "/auth/login",
   "/auth/logout",
+  "/admin/backup", // semua fitur backup (buat, progress, download, hapus)
+  "/download", // semua URL download (QR, backup, satker ZIP, dll)
+  "/templateExcel", // download template import Excel
 ];
 
 // ─── Helpers ──────────────────────────────────────────────
 const isBypass = (url) => BYPASS.some((p) => url.pathname.includes(p));
 const isStaticFile = (url) =>
   url.pathname.startsWith("/assets/") ||
-  /\.(css|js|woff2?|ttf|png|jpe?g|gif|svg|ico|webp)(\?.*)?$/.test(url.pathname);
+  /\.(css|js|woff2?|ttf|png|jpe?g|gif|svg|ico|webp)$/.test(url.pathname);
 const isSameDomain = (url) => url.origin === self.location.origin;
 const isCDN = (url) =>
   url.hostname.includes("cdn.jsdelivr.net") ||
@@ -88,11 +97,8 @@ self.addEventListener("fetch", (event) => {
   if (!url.protocol.startsWith("http")) return;
   if (req.method !== "GET") return;
 
-  // ① BYPASS — langsung network, tidak di-cache
-  if (isBypass(url)) {
-    event.respondWith(fetch(req));
-    return;
-  }
+  // ① BYPASS — SW tidak ikut campur, browser yang menangani langsung
+  if (isBypass(url)) return;
 
   // ② STATIC FILE (lokal) — Cache First
   if (isSameDomain(url) && isStaticFile(url)) {
@@ -107,13 +113,12 @@ self.addEventListener("fetch", (event) => {
   }
 
   // ④ NAVIGASI HALAMAN — Network First + fallback cache
-  if (req.mode === "navigate") {
+  if (req.mode === "navigate" && isSameDomain(url)) {
     event.respondWith(stratNetworkFirst(req));
     return;
   }
 
-  // ⑤ Lainnya — Network saja
-  event.respondWith(fetch(req).catch(() => {}));
+  // ⑤ Lainnya — biarkan browser menangani seperti biasa
 });
 
 // ═════════════════════════════════════════════════════════
@@ -123,17 +128,12 @@ async function stratCacheFirst(req, cacheName) {
   const hit = await caches.match(req);
   if (hit) return hit;
 
-  try {
-    const res = await fetch(req);
-    if (res.ok) {
-      const cache = await caches.open(cacheName);
-      cache.put(req, res.clone());
-    }
-    return res;
-  } catch (e) {
-    console.warn("[SW] Cache First gagal:", req.url);
-    throw e;
+  const res = await fetch(req);
+  if (res.ok) {
+    const cache = await caches.open(cacheName);
+    cache.put(req, res.clone());
   }
+  return res;
 }
 
 // ═════════════════════════════════════════════════════════
@@ -144,8 +144,18 @@ async function stratNetworkFirst(req) {
   try {
     const res = await fetch(req);
 
-    // Jika server redirect ke login (session expired), ikutin aja — jangan cache
-    if (res.ok && res.status === 200) {
+    // Hanya cache halaman HTML biasa.
+    // File download (attachment), hasil redirect, dan non-HTML tidak di-cache.
+    const type = res.headers.get("Content-Type") || "";
+    const disposition = res.headers.get("Content-Disposition") || "";
+    const bolehCache =
+      res.ok &&
+      res.status === 200 &&
+      !res.redirected &&
+      type.includes("text/html") &&
+      !disposition.includes("attachment");
+
+    if (bolehCache) {
       const cache = await caches.open(CACHE_PAGES);
       cache.put(req, res.clone());
     }
@@ -206,4 +216,20 @@ self.addEventListener("message", (event) => {
   if (event.data.type === "SKIP_WAITING") self.skipWaiting();
   if (event.data.type === "GET_VERSION" && event.ports[0])
     event.ports[0].postMessage({ version: VERSION });
+
+  // Halaman meminta dirinya disimpan untuk dipakai offline
+  if (event.data.type === "CACHE_PAGE" && event.data.url) {
+    event.waitUntil(
+      fetch(event.data.url, { credentials: "same-origin" })
+        .then((res) => {
+          const type = res.headers.get("Content-Type") || "";
+          if (res.ok && !res.redirected && type.includes("text/html")) {
+            return caches
+              .open(CACHE_PAGES)
+              .then((cache) => cache.put(event.data.url, res));
+          }
+        })
+        .catch(() => {}),
+    );
+  }
 });

@@ -69,6 +69,9 @@
                                 <option value="PPPK" <?= old('kategori') === 'PPPK' ? 'selected' : '' ?>>
                                     PPPK
                                 </option>
+                                <option value="PHL" <?= old('kategori') === 'PHL' ? 'selected' : '' ?>>
+                                    PHL
+                                </option>
                             </select>
                         </div>
                     </div>
@@ -94,6 +97,9 @@
                                 </option>
                                 <option value="PPPK" <?= old('kelompok') === 'PPPK' ? 'selected' : '' ?>>
                                     PPPK
+                                </option>
+                                <option value="PHL" <?= old('kelompok') === 'PHL' ? 'selected' : '' ?>>
+                                    PHL
                                 </option>
 
                             </select>

@@ -17,6 +17,7 @@
         $totalMiliter = count(array_filter($pangkat, fn($p) => $p['kategori'] === 'Militer'));
         $totalPNS     = count(array_filter($pangkat, fn($p) => $p['kategori'] === 'PNS'));
         $totalPPPK    = count(array_filter($pangkat, fn($p) => $p['kategori'] === 'PPPK'));
+        $totalPHL     = count(array_filter($pangkat, fn($p) => $p['kategori'] === 'PHL'));
     ?>
     <div class="col-sm-3">
         <div class="summary-card">
@@ -30,16 +31,22 @@
             <div class="summary-label">Militer</div>
         </div>
     </div>
-    <div class="col-sm-3">
+    <div class="col-sm-2">
         <div class="summary-card">
             <div class="summary-num" style="color:#f59e0b;"><?= $totalPNS ?></div>
             <div class="summary-label">PNS</div>
         </div>
     </div>
-    <div class="col-sm-3">
+    <div class="col-sm-2">
         <div class="summary-card">
             <div class="summary-num" style="color:#10b981;"><?= $totalPPPK ?></div>
             <div class="summary-label">PPPK</div>
+        </div>
+    </div>
+    <div class="col-sm-2">
+        <div class="summary-card">
+            <div class="summary-num" style="color:#8b5cf6;"><?= $totalPHL ?></div>
+            <div class="summary-label">PHL</div>
         </div>
     </div>
 
@@ -87,7 +94,7 @@
                     foreach ($pangkat as $p) {
                         $grouped[$p['kelompok']][] = $p;
                     }
-                    $kelompokOrder = ['Perwira', 'Bintara', 'Tamtama', 'PNS', 'PPPK'];
+                    $kelompokOrder = ['Perwira', 'Bintara', 'Tamtama', 'PNS', 'PPPK', 'PHL'];
                     ?>
                     <?php foreach ($kelompokOrder as $kelompok): ?>
                     <?php if (!isset($grouped[$kelompok])) continue; ?>
@@ -340,29 +347,34 @@
     }
 
     .group-label.perwira {
-        background: #dbeafe;
-        color: #1e40af
+        background: #f5efb4;
+        color: #937513
     }
 
     .group-label.bintara {
-        background: #dcfce7;
-        color: #166534
+        background: #cbe1f5;
+        color: #1f4685
     }
 
     .group-label.tamtama {
-        background: #fef9c3;
-        color: #854d0e
+        background: #f7cdcd;
+        color: #850e0e
     }
 
     .group-label.pns {
-        background: #f3e8ff;
-        color: #5b21b6
+        background: #f5e4a8;
+        color: #554313
     }
 
 
     .group-label.pppk {
         background: #e8ffeb;
         color: #21b65f
+    }
+
+    .group-label.phl {
+        background: #f3e8ff;
+        color: #5b21b6
     }
 
     /* Urutan badge */
@@ -388,8 +400,8 @@
     }
 
     .badge-kategori.militer {
-        background: #dbeafe;
-        color: #1e40af
+        background: #bdfcd5;
+        color: #09471e
     }
 
     .badge-kategori.pns {
@@ -400,6 +412,11 @@
     .badge-kategori.pppk {
         background: #d2fec3;
         color: #1c850e
+    }
+
+    .badge-kategori.phl {
+        background: #f3e8ff;
+        color: #5b21b6
     }
 
     .action-wrap {

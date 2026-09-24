@@ -226,7 +226,37 @@
     </div>
 </div>
 
-<!-- Section: Data per Satuan Kerja -->
+<!-- Row: Tren Input Data -->
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="chart-card">
+            <div class="chart-card-header flex-wrap gap-2">
+                <div>
+                    <div class="chart-card-title">
+                        <i class="bi bi-graph-up-arrow me-2 text-primary"></i>
+                        Tren Aktivitas Input Data Harian
+                    </div>
+                    <div class="chart-card-sub">Jumlah personel dan kendaraan baru yang diinput dalam 7 hari terakhir
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="chart-badge">
+                        <span class="legend-dot" style="background:#3b82f6;"></span> Personel Baru
+                    </span>
+                    <span class="chart-badge">
+                        <span class="legend-dot" style="background:#16a34a;"></span> Kendaraan Baru
+                    </span>
+                </div>
+            </div>
+            <div class="chart-body">
+                <div style="position: relative; height: 260px; width: 100%;">
+                    <canvas id="chartTrenInput"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Section: Data per Satuan Kerja & Monitoring Input -->
 <div class="row g-3 mt-1 mb-4">
 
@@ -282,7 +312,7 @@
                         Rekap Data per Satuan Kerja
                     </div>
                     <div class="chart-card-sub">
-                        Jumlah personel & kendaraan terdaftar per satker
+                        Visualisasi Top Satker (Jumlah personel & kendaraan terdaftar)
                     </div>
                 </div>
 
@@ -303,7 +333,7 @@
                         <input type="text" id="searchSatker" class="search-input" placeholder="Cari satker...">
                     </div>
 
-                    <!-- Tombol Export Excel untuk Pimpinan -->
+                    <!-- Tombol Export Excel -->
                     <a href="<?= base_url('admin/dashboard/export-satker') ?>" class="btn-export-excel"
                         title="Download Format Excel untuk Laporan Pimpinan">
                         <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
@@ -318,9 +348,9 @@
             </div>
             <?php else: ?>
 
-            <!-- Chart Horizontal Bar -->
+            <!-- Chart Horizontal Bar (Top Satker) -->
             <div class="chart-body pb-3">
-                <div style="position: relative; max-height: 280px; width: 100%;">
+                <div id="chartSatkerContainer" style="position: relative; min-height: 320px; width: 100%;">
                     <canvas id="chartSatkerPersonel"></canvas>
                 </div>
             </div>
@@ -431,8 +461,6 @@
         </div>
     </div>
 </div>
-
-
 
 <?= $this->endSection() ?>
 
@@ -682,7 +710,7 @@
     color: #15803d;
 }
 
-/* ── Progress Summary Card (BARU) ── */
+/* ── Progress Summary Card ── */
 .progress-summary-card {
     background: #fff;
     border-radius: 14px;
@@ -747,7 +775,7 @@
     border-radius: 8px;
 }
 
-/* ── Filter Tab Satker (BARU) ── */
+/* ── Filter Tab Satker ── */
 .btn-filter-satker {
     font-size: .75rem;
     padding: .35rem .75rem;
@@ -769,7 +797,7 @@
     border-color: #16a34a;
 }
 
-/* ── Button Export Excel (BARU) ── */
+/* ── Button Export Excel ── */
 .btn-export-excel {
     display: inline-flex;
     align-items: center;
@@ -791,7 +819,6 @@
     transform: translateY(-1px);
 }
 
-/* ── Satker Table ── */
 /* ── Satker Table Custom ── */
 .table-custom {
     width: 100%;
@@ -862,7 +889,27 @@
     font-weight: 600;
 }
 
-/* Badge count */
+.badge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.badge-status.aktif {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.badge-status.aktif .badge-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #16a34a;
+}
+
 .badge-count {
     display: inline-flex;
     align-items: center;
@@ -889,7 +936,6 @@
     color: #5b21b6;
 }
 
-/* Coverage bar */
 .coverage-wrap {
     display: flex;
     align-items: center;
@@ -942,7 +988,6 @@
     color: #ef4444;
 }
 
-/* Search */
 .search-wrap {
     position: relative;
 }
@@ -970,7 +1015,6 @@
     box-shadow: 0 0 0 3px rgba(22, 163, 74, .1);
 }
 
-/* Empty state */
 .empty-state {
     text-align: center;
     padding: 3rem 1rem;
@@ -1114,7 +1158,7 @@ new Chart(document.getElementById('chartShift'), {
 });
 
 /* ════════════════════════════════════════════════
-   CHART 3 — Horizontal Bar: Top Satker
+   CHART 3 — Horizontal Bar: Top Satker (Scan)
 ════════════════════════════════════════════════ */
 new Chart(document.getElementById('chartSatker'), {
     type: 'bar',
@@ -1180,21 +1224,140 @@ new Chart(document.getElementById('chartSatker'), {
         }
     }
 });
-/* ════════════════════════════════════════
-   CHART: Personel & Kendaraan per Satker (Horizontal Bar)
-════════════════════════════════════════ */
-<?php if (!empty($data_satker)): ?>
-// Filter hanya satker yang ada personel atau kendaraan (biar chart tidak penuh dengan data 0)
-const rawDataSatker = <?= json_encode($data_satker) ?>;
-const activeSatker = rawDataSatker.filter(d => parseInt(d.total_personel) > 0 || parseInt(d.total_kendaraan) > 0);
 
-// Jika semua masih 0, ambil 5 satker teratas saja untuk placeholder
-const displayData = activeSatker.length > 0 ? activeSatker : rawDataSatker.slice(0, 5);
+/* ════════════════════════════════════════════════
+   CHART — Area/Line: Tren Input Data Harian
+════════════════════════════════════════════════ */
+const dataTrenInput = <?= json_encode($chart_tren_input ?? []) ?>;
+
+const canvasTren = document.getElementById('chartTrenInput');
+if (canvasTren && dataTrenInput.length > 0) {
+    const ctxTren = canvasTren.getContext('2d');
+
+    // Buat efek gradasi lembut (gradient area fill)
+    const gradientPersonel = ctxTren.createLinearGradient(0, 0, 0, 240);
+    gradientPersonel.addColorStop(0, 'rgba(59, 130, 246, 0.25)');
+    gradientPersonel.addColorStop(1, 'rgba(59, 130, 246, 0.00)');
+
+    const gradientKendaraan = ctxTren.createLinearGradient(0, 0, 0, 240);
+    gradientKendaraan.addColorStop(0, 'rgba(22, 163, 74, 0.25)');
+    gradientKendaraan.addColorStop(1, 'rgba(22, 163, 74, 0.00)');
+
+    new Chart(canvasTren, {
+        type: 'line',
+        data: {
+            labels: dataTrenInput.map(d => d.label),
+            datasets: [{
+                    label: 'Personel Diinput',
+                    data: dataTrenInput.map(d => d.personel),
+                    borderColor: '#3b82f6',
+                    backgroundColor: gradientPersonel,
+                    fill: true,
+                    tension: 0.38,
+                    borderWidth: 2.5,
+                    pointBackgroundColor: '#3b82f6',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                },
+                {
+                    label: 'Kendaraan Diinput',
+                    data: dataTrenInput.map(d => d.kendaraan),
+                    borderColor: '#16a34a',
+                    backgroundColor: gradientKendaraan,
+                    fill: true,
+                    tension: 0.38,
+                    borderWidth: 2.5,
+                    pointBackgroundColor: '#16a34a',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    display: false // Sudah dibuatkan badge custom di header
+                },
+                tooltip: {
+                    padding: 12,
+                    boxPadding: 6,
+                    callbacks: {
+                        label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y} data`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    border: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0,0,0,.04)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        precision: 0,
+                        stepSize: 5,
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+/* ════════════════════════════════════════════════════════════
+   CHART 4 — Horizontal Bar: Personel, Kendaraan & QR per Satker
+════════════════════════════════════════════════════════════ */
+<?php if (!empty($data_satker)): ?>
+const rawDataSatker = <?= json_encode($data_satker) ?>;
+
+// Filter satker yang memiliki data dan urutkan dari yang terbesar
+const activeSatker = rawDataSatker
+    .filter(d => parseInt(d.total_personel) > 0 || parseInt(d.total_kendaraan) > 0)
+    .sort((a, b) => {
+        const totalA = parseInt(a.total_personel) + parseInt(a.total_kendaraan);
+        const totalB = parseInt(b.total_personel) + parseInt(b.total_kendaraan);
+        return totalB - totalA;
+    });
+
+// Tampilkan Top 8 Satker teratas agar chart lega dan rapi
+const topLimit = 10;
+const displayData = activeSatker.length > 0 ? activeSatker.slice(0, topLimit) : rawDataSatker.slice(0, 10);
 
 const satkerNames = displayData.map(d => d.nama_singkat);
 const satkerPersonel = displayData.map(d => parseInt(d.total_personel));
 const satkerKendaraan = displayData.map(d => parseInt(d.total_kendaraan));
 const satkerQR = displayData.map(d => parseInt(d.total_qr_aktif));
+
+// Auto height container
+const chartContainer = document.getElementById('chartSatkerContainer');
+if (chartContainer) {
+    chartContainer.style.height = `${displayData.length * 40 + 60}px`; // ~460px untuk 10 bar
+}
 
 new Chart(document.getElementById('chartSatkerPersonel'), {
     type: 'bar',
@@ -1203,43 +1366,52 @@ new Chart(document.getElementById('chartSatkerPersonel'), {
         datasets: [{
                 label: 'Personel',
                 data: satkerPersonel,
-                backgroundColor: 'rgba(59,130,246,.8)',
+                backgroundColor: 'rgba(59,130,246,.85)',
+                hoverBackgroundColor: '#3b82f6',
                 borderRadius: 4,
-                barThickness: 12,
+                barPercentage: 0.85,
+                categoryPercentage: 0.75,
             },
             {
                 label: 'Kendaraan',
                 data: satkerKendaraan,
-                backgroundColor: 'rgba(22,163,74,.8)',
+                backgroundColor: 'rgba(22,163,74,.85)',
+                hoverBackgroundColor: '#16a34a',
                 borderRadius: 4,
-                barThickness: 12,
+                barPercentage: 0.85,
+                categoryPercentage: 0.75,
             },
             {
                 label: 'QR Aktif',
                 data: satkerQR,
-                backgroundColor: 'rgba(139,92,246,.8)',
+                backgroundColor: 'rgba(139,92,246,.85)',
+                hoverBackgroundColor: '#8b5cf6',
                 borderRadius: 4,
-                barThickness: 12,
+                barPercentage: 0.85,
+                categoryPercentage: 0.75,
             },
         ]
     },
     options: {
-        indexAxis: 'y', // ← Horizontal Bar!
+        indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
             legend: {
                 position: 'top',
+                align: 'end',
                 labels: {
                     font: {
-                        size: 11
+                        size: 11,
+                        weight: '600'
                     },
                     usePointStyle: true,
                     pointStyle: 'circle',
-                    padding: 12,
+                    padding: 15,
                 }
             },
             tooltip: {
+                padding: 10,
                 callbacks: {
                     label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.x}`
                 }
@@ -1249,35 +1421,34 @@ new Chart(document.getElementById('chartSatkerPersonel'), {
             x: {
                 beginAtZero: true,
                 grid: {
-                    color: 'rgba(0,0,0,.04)'
-                },
-                border: {
-                    display: false
+                    color: 'rgba(0,0,0,.04)',
+                    drawBorder: false,
                 },
                 ticks: {
                     precision: 0,
-                    stepSize: 5
+                    font: {
+                        size: 11
+                    }
                 }
             },
             y: {
                 grid: {
-                    display: false
-                },
-                border: {
-                    display: false
+                    display: false,
+                    drawBorder: false,
                 },
                 ticks: {
                     font: {
                         size: 11,
-                        weight: '500'
-                    }
+                        weight: '600'
+                    },
+                    color: '#334155',
+                    autoSkip: false
                 }
             }
         }
     }
 });
 
-// ── Live Search Satker Table ─────────────────────────
 // ── Filter Satker (Live Search + Tab Status) ─────────
 let currentFilter = 'all';
 
@@ -1296,7 +1467,7 @@ function applySatkerFilter() {
     const keyword = document.getElementById('searchSatker').value.toLowerCase();
 
     document.querySelectorAll('#satkerTable tbody tr').forEach(row => {
-        const hasData = row.getAttribute('data-has-data'); // '1' atau '0'
+        const hasData = row.getAttribute('data-has-data');
         const textMatch = row.textContent.toLowerCase().includes(keyword);
 
         let statusMatch = true;
@@ -1313,7 +1484,7 @@ function applySatkerFilter() {
 <?php endif; ?>
 
 /* ════════════════════════════════════════════════
-   CHART 4 — Doughnut: Personel by Kelompok Pangkat
+   CHART 5 — Doughnut: Personel by Kelompok Pangkat
 ════════════════════════════════════════════════ */
 const pangkatColors = {
     'Perwira': '#3b82f6',

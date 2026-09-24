@@ -68,6 +68,11 @@
                                 <option value="PPPK"
                                     <?= old('kategori', $pangkat['kategori']) === 'PPPK' ? 'selected' : '' ?>>
                                     PPPK
+                                </option>
+                                <option value="PHL"
+                                    <?= old('kategori', $pangkat['kategori']) === 'PHL' ? 'selected' : '' ?>>
+                                    PHL
+                                </option>
                             </select>
                         </div>
                     </div>
@@ -79,7 +84,7 @@
                             <select name="kelompok" id="kelompok" class="form-input" required>
                                 <?php
                                 $selectedKelompok = old('kelompok', $pangkat['kelompok']);
-                                $kelompoks = ['Perwira', 'Bintara', 'Tamtama', 'PNS', 'PPPK'];
+                                $kelompoks = ['Perwira', 'Bintara', 'Tamtama', 'PNS', 'PPPK', 'PHL'];
                                 foreach ($kelompoks as $k):
                                 ?>
                                 <option value="<?= $k ?>" <?= $selectedKelompok === $k ? 'selected' : '' ?>>
