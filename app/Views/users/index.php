@@ -431,9 +431,14 @@ document.getElementById('searchInput').addEventListener('input', function() {
 
 // ── Confirm Toggle Status ─────────────────────────────────
 function confirmToggle(form, currentStatus, nama) {
-    const action = currentStatus === 'aktif' ? 'menonaktifkan' : 'mengaktifkan';
-    const confirm = window.confirm(`Yakin ingin ${action} akun petugas "${nama}"?`);
-    return confirm;
+    document.querySelectorAll('.form-toggle-user').forEach(form => {
+        form.addEventListener('submit', e => {
+            const action = form.dataset.status === 'aktif' ? 'menonaktifkan' : 'mengaktifkan';
+            if (!confirm(`Yakin ingin ${action} akun petugas "${form.dataset.nama}"?`)) {
+                e.preventDefault();
+            }
+        });
+    });
 }
 </script>
 <?= $this->endSection() ?>

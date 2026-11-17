@@ -2066,7 +2066,7 @@
                 showSuccess(data);
             } else {
                 beepError();
-                showError(data.message || 'QR Code tidak valid.');
+                showError(data.message || 'QR Code tidak valid.', data.title);
             }
 
         } catch (err) {
@@ -2409,8 +2409,14 @@
     /* ════════════════════════════════════════════════
     SHOW ERROR
     ════════════════════════════════════════════════ */
-    function showError(msg) {
-        setStatus('error', 'QR Tidak Dikenali');
+    function showError(msg, title) {
+        const judul = title || 'QR Tidak Dikenali';
+
+        document.getElementById('scannerSection').classList.add('hidden');
+        document.getElementById('qrFrame').style.display = 'none';
+
+        setStatus('error', judul);
+        document.querySelector('#errorCard .error-title').textContent = judul;
         document.getElementById('errorMsg').textContent = msg;
         document.getElementById('errorCard').classList.add('show');
         document.getElementById('resultCard').classList.remove('show');

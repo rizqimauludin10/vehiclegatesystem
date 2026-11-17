@@ -1105,6 +1105,12 @@ $(document).ready(function() {
             selectedUrl = null;
         }
     });
+
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn-toggle-personel');
+        if (!btn) return;
+        konfirmasiToggle(btn.dataset.url, btn.dataset.nama, btn.dataset.status);
+    });
 });
 
 function konfirmasiToggle(actionUrl, nama, statusSaat) {

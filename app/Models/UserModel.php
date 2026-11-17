@@ -28,7 +28,7 @@ class UserModel extends Model
     protected $validationRules = [
         'nama'     => 'required|min_length[3]|max_length[100]',
         'username' => 'required|min_length[4]|max_length[50]|is_unique[users.username,id,{id}]',
-        'role'     => 'required|in_list[admin,petugas]',
+        'role'     => 'required|in_list[superadmin,admin,petugas]',
     ];
 
     protected $validationMessages = [

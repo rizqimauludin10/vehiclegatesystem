@@ -15,6 +15,12 @@ use App\Models\LogKeluarModel;
  * Scan QR → dapat kendaraan_id → JOIN ke personel
  * Response: data kendaraan spesifik + data personel pemilik
  *
+ * Aturan akses:
+ * - QR harus aktif
+ * - Kendaraan harus berstatus 'aktif'
+ * - Personel pemilik harus berstatus 'aktif'
+ * - Scan yang ditolak TIDAK dicatat di log dan TIDAK mengirim data personel
+ *
  * Routes:
  * GET  /petugas/scan          → index (hardware scanner)
  * POST /petugas/scan/process  → proses QR (AJAX)
@@ -23,11 +29,11 @@ use App\Models\LogKeluarModel;
  */
 class Scan extends BaseController
 {
-    protected QRCodeModel       $qrModel;
-    protected KendaraanModel    $kendaraanModel;
+    protected QRCodeModel        $qrModel;
+    protected KendaraanModel     $kendaraanModel;
     protected KendaraanFotoModel $fotoModel;
-    protected PersonelModel     $personelModel;
-    protected LogKeluarModel    $logModel;
+    protected PersonelModel      $personelModel;
+    protected LogKeluarModel     $logModel;
 
     public function __construct()
     {
@@ -84,10 +90,14 @@ class Scan extends BaseController
     //
     // Flow:
     // 1. Cari kode_unik di tabel qrcode → dapat kendaraan_id
-    // 2. Ambil data kendaraan lengkap
-    // 3. Dari kendaraan → ambil data personel pemilik
-    // 4. Simpan log_keluar (kendaraan_id)
-    // 5. Return JSON: kendaraan + personel
+    // 2. Ambil data kendaraan, pastikan statusnya aktif
+    // 3. Ambil data personel pemilik, pastikan statusnya aktif
+    // 4. Ambil foto galeri & STNK
+    // 5. Simpan log_keluar (hanya untuk scan yang berhasil)
+    // 6. Return JSON: kendaraan + personel
+    //
+    // Format jawaban ditolak:
+    //   status: 'error', code, title, message, csrf_hash
     // ──────────────────────────────────────────────────────────
     public function process()
     {
@@ -95,65 +105,57 @@ class Scan extends BaseController
             return redirect()->to('/petugas/scan');
         }
 
-        $kodeUnik = trim($this->request->getPost('kode_unik'));
+        $kodeUnik = trim((string) $this->request->getPost('kode_unik'));
 
-        if (empty($kodeUnik)) {
-            return $this->response->setJSON([
-                'status'  => 'error',
-                'message' => 'Kode QR tidak boleh kosong.',
-            ]);
+        if ($kodeUnik === '') {
+            return $this->reject('QR_KOSONG', 'QR Tidak Terbaca', 'Kode QR tidak boleh kosong.');
+        }
+
+        // Kode unik di database maksimal 64 karakter; yang lebih panjang pasti bukan QR sistem ini
+        if (strlen($kodeUnik) > 64) {
+            return $this->reject('QR_INVALID', 'QR Tidak Dikenali', 'QR Code ini bukan milik sistem VGS.');
         }
 
         // ── 1. Cari QR aktif ──────────────────────────────────
         $qr = $this->qrModel->findByKodeUnik($kodeUnik);
 
         if (!$qr) {
-            return $this->response->setJSON([
-                'status'  => 'error',
-                'message' => 'QR Code tidak dikenali atau sudah tidak aktif.',
-            ]);
+            return $this->reject('QR_INVALID', 'QR Tidak Dikenali', 'QR Code tidak dikenali atau sudah tidak aktif.');
         }
 
         // ── 2. Ambil data kendaraan ───────────────────────────
         $kendaraan = $this->kendaraanModel->find($qr['kendaraan_id']);
 
         if (!$kendaraan) {
-            return $this->response->setJSON([
-                'status'  => 'error',
-                'message' => 'Data kendaraan tidak ditemukan.',
-            ]);
+            return $this->reject('KENDARAAN_TIDAK_ADA', 'Akses Ditolak', 'Data kendaraan tidak ditemukan.');
         }
 
-        if ($kendaraan['status'] === 'dibekukan') {
-            return $this->response->setJSON([
-                'status'  => 'error',
-                'message' => "Kendaraan {$kendaraan['plat_nomor']} sedang dibekukan dan tidak dapat melintas.",
-            ]);
+        // Tolak semua status selain 'aktif' (dibekukan, atau status lain di masa depan)
+        if (($kendaraan['status'] ?? '') !== 'aktif') {
+            return $this->reject(
+                'KENDARAAN_DIBEKUKAN',
+                'Kendaraan Dibekukan',
+                "Kendaraan {$kendaraan['plat_nomor']} sedang dibekukan dan tidak dapat melintas."
+            );
         }
 
-        // ── 3. Ambil data personel pemilik ────────────────────
-        $personel = $this->personelModel->findByUuid(
-            $this->personelModel->find($kendaraan['personel_id'])['uuid']
-        );
+        // ── 3. Ambil data personel pemilik (sekaligus pangkat & satker) ──
+        $personel = !empty($kendaraan['personel_id'])
+            ? $this->personelModel->findDetailById((int) $kendaraan['personel_id'])
+            : null;
 
         if (!$personel) {
-            return $this->response->setJSON([
-                'status'  => 'error',
-                'message' => 'Data personel pemilik tidak ditemukan.',
-            ]);
+            return $this->reject('PERSONEL_TIDAK_ADA', 'Akses Ditolak', 'Data personel pemilik tidak ditemukan.');
         }
 
-        if ($personel['status'] !== 'aktif') {
-            return $this->response->setJSON([
-                'status'  => 'error',
-                'message' => 'Personel pemilik kendaraan ini tidak aktif.',
-            ]);
+        if (($personel['status'] ?? '') !== 'aktif') {
+            return $this->reject('PERSONEL_NONAKTIF', 'Pemilik Tidak Aktif', 'Personel pemilik kendaraan ini tidak aktif.');
         }
 
         // ── 4. Ambil foto galeri & STNK kendaraan ────────────
         $galeri = $this->fotoModel->getByKendaraan($kendaraan['id']);
 
-        $galeriUrls = array_map(function ($foto) {
+        $galeriUrls = array_map(static function ($foto) {
             return base_url('uploads/kendaraan/' . $foto['nama_file']);
         }, $galeri);
 
@@ -169,7 +171,15 @@ class Scan extends BaseController
             : null;
 
         // ── 5. Simpan log keluar ──────────────────────────────
-        $this->logModel->saveLog($kendaraan['id'], $kodeUnik);
+        // Kendaraan tetap diizinkan lewat walau pencatatan gagal,
+        // tapi kegagalannya dicatat di writable/logs untuk diperiksa.
+        try {
+            if (!$this->logModel->saveLog((int) $kendaraan['id'], $kodeUnik)) {
+                log_message('error', '[Scan] Gagal menyimpan log keluar untuk kendaraan ID ' . $kendaraan['id']);
+            }
+        } catch (\Throwable $e) {
+            log_message('error', '[Scan] Error menyimpan log keluar: ' . $e->getMessage());
+        }
 
         // ── 6. Build response ─────────────────────────────────
         return $this->response->setJSON([
@@ -179,15 +189,15 @@ class Scan extends BaseController
 
             // Data personel pemilik
             'personel'  => [
-                'nama'           => $personel['nama'],
-                'nrp'            => $personel['nrp'],
+                'nama'            => $personel['nama'],
+                'nrp'             => $personel['nrp'],
                 'pangkat_singkat' => $personel['pangkat_singkat'] ?? '-',
-                'nama_pangkat'   => $personel['nama_pangkat']    ?? '-',
-                'jabatan'        => $personel['jabatan']         ?? '',
-                'satker_singkat' => $personel['satker_singkat']  ?? '',
-                'satker_panjang' => $personel['satker_panjang']  ?? '',
+                'nama_pangkat'    => $personel['nama_pangkat']    ?? '-',
+                'jabatan'         => $personel['jabatan']         ?? '',
+                'satker_singkat'  => $personel['satker_singkat']  ?? '',
+                'satker_panjang'  => $personel['satker_panjang']  ?? '',
                 'no_hp'           => $personel['no_hp']           ?? null,
-                'foto'           => !empty($personel['foto'])
+                'foto'            => !empty($personel['foto'])
                     ? base_url('uploads/personel/' . $personel['foto'])
                     : null,
             ],
@@ -198,13 +208,13 @@ class Scan extends BaseController
                 'kendaraan_kode' => $kendaraan['kendaraan_kode'],
                 'plat_nomor'     => $kendaraan['plat_nomor'],
                 'jenis'          => $kendaraan['jenis'],
-                'merk'           => $kendaraan['merk']           ?? '',
-                'model'          => $kendaraan['model']          ?? '',
-                'warna'          => $kendaraan['warna']          ?? '',
+                'merk'           => $kendaraan['merk']            ?? '',
+                'model'          => $kendaraan['model']           ?? '',
+                'warna'          => $kendaraan['warna']           ?? '',
                 'tahun'          => $kendaraan['tahun_kendaraan'] ?? '',
-                'nomor_stnk'     => $kendaraan['nomor_stnk']     ?? '',
-                'nomor_rangka'   => $kendaraan['nomor_rangka']   ?? '',
-                'nomor_mesin'    => $kendaraan['nomor_mesin']    ?? '',
+                'nomor_stnk'     => $kendaraan['nomor_stnk']      ?? '',
+                'nomor_rangka'   => $kendaraan['nomor_rangka']    ?? '',
+                'nomor_mesin'    => $kendaraan['nomor_mesin']     ?? '',
                 'status'         => $kendaraan['status'],
                 'thumbnail_url'  => $thumbnailUrl,
                 'galeri_urls'    => $galeriUrls,
@@ -212,6 +222,22 @@ class Scan extends BaseController
             ],
 
             // CSRF hash baru untuk request berikutnya
+            'csrf_hash' => csrf_hash(),
+        ]);
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // PRIVATE — Jawaban scan ditolak
+    // Tidak menyertakan data personel, dan tidak dicatat di log.
+    // Selalu menyertakan csrf_hash supaya scan berikutnya tidak gagal.
+    // ──────────────────────────────────────────────────────────
+    private function reject(string $code, string $title, string $message)
+    {
+        return $this->response->setJSON([
+            'status'    => 'error',
+            'code'      => $code,
+            'title'     => $title,
+            'message'   => $message,
             'csrf_hash' => csrf_hash(),
         ]);
     }

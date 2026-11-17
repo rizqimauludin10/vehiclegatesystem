@@ -104,6 +104,13 @@ $routes->group('admin', ['filter' => 'role:superadmin'], static function ($route
     $routes->get('maintenance', 'Maintenance::index');
     $routes->post('maintenance/toggle', 'Maintenance::toggle');
     $routes->get('maintenance/preview', 'Maintenance::preview');
+
+    $routes->get('admins', 'AdminManagement::index');
+    $routes->get('admins/create', 'AdminManagement::create');
+    $routes->post('admins/store', 'AdminManagement::store');
+    $routes->get('admins/edit/(:segment)', 'AdminManagement::edit/$1');
+    $routes->post('admins/update/(:segment)', 'AdminManagement::update/$1');
+    $routes->post('admins/toggle/(:segment)', 'AdminManagement::toggle/$1');
 });
 
 // ─── Petugas Routes ───────────────────────────────────────

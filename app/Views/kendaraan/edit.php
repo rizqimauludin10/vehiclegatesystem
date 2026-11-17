@@ -1,6 +1,24 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 
+<?php $uploadWarnings = session()->getFlashdata('upload_warnings'); ?>
+<?php if (!empty($uploadWarnings)): ?>
+<div class="upload-warning mb-4">
+    <div class="upload-warning-title">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        Data kendaraan tersimpan, tetapi <?= count($uploadWarnings) ?> foto gagal diunggah
+    </div>
+    <ul class="upload-warning-list">
+        <?php foreach ($uploadWarnings as $w): ?>
+        <li><?= esc($w) ?></li>
+        <?php endforeach; ?>
+    </ul>
+    <div class="upload-warning-hint">
+        Silakan unggah ulang foto di atas melalui form di bawah, lalu simpan.
+    </div>
+</div>
+<?php endif; ?>
+
 <div class="page-header mb-4">
     <div>
         <h5 class="page-header-title">Edit Kendaraan</h5>
@@ -581,6 +599,33 @@
 
 .btn-submit:hover {
     transform: translateY(-1px)
+}
+
+.upload-warning {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-left: 4px solid #f59e0b;
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    color: #92400e;
+}
+
+.upload-warning-title {
+    font-size: .85rem;
+    font-weight: 600;
+    margin-bottom: .4rem;
+}
+
+.upload-warning-list {
+    font-size: .8rem;
+    margin: 0 0 .5rem;
+    padding-left: 1.6rem;
+    line-height: 1.6;
+}
+
+.upload-warning-hint {
+    font-size: .75rem;
+    color: #b45309;
 }
 </style>
 <?= $this->endSection() ?>

@@ -70,7 +70,9 @@
 
         <?php if (!$forcedByEnv): ?>
         <form action="<?= base_url('admin/maintenance/toggle') ?>" method="POST"
-            onsubmit="return confirm('Matikan mode maintenance? Semua pengguna akan bisa mengakses sistem kembali.')">
+            data-confirm-title="Matikan mode maintenance?"
+            data-confirm="Semua pengguna akan bisa mengakses sistem kembali setelah memuat ulang halaman."
+            data-confirm-ok="Ya, matikan" data-confirm-variant="success">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="disable">
             <button type="submit" class="mt-btn mt-btn-on">
@@ -84,7 +86,9 @@
 
     <!-- Form AKTIFKAN -->
     <form action="<?= base_url('admin/maintenance/toggle') ?>" method="POST" class="mt-card-body"
-        onsubmit="return confirm('Aktifkan mode maintenance? Petugas tidak akan bisa memakai sistem, termasuk scan QR di gerbang.')">
+        data-confirm-title="Aktifkan mode maintenance?"
+        data-confirm="Pengguna yang diblokir akan melihat halaman maintenance, dan petugas tidak bisa scan QR di gerbang."
+        data-confirm-ok="Ya, aktifkan" data-confirm-variant="warning">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="enable">
 

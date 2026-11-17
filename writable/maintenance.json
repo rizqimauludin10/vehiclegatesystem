@@ -1,8 +1,8 @@
 {
-  "enabled": false,
-  "scope": "semua",
-  "estimasi": "± 15 - 30 Menit",
-  "pesan": "",
-  "by": null,
-  "since": null
+    "enabled": false,
+    "scope": "semua",
+    "estimasi": "± 60 - 90 Menit",
+    "pesan": "Harap bersabar!",
+    "by": null,
+    "since": null
 }

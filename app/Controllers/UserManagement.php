@@ -100,7 +100,7 @@ class UserManagement extends BaseController
     // EDIT — Form Edit Petugas
     // GET /admin/users/edit/{uuid}
     // ──────────────────────────────────────────────────────────
-    public function edit(string $uuid): string
+    public function edit(string $uuid)
     {
         $user = $this->userModel->findByUuid($uuid);
 
@@ -171,7 +171,11 @@ class UserManagement extends BaseController
             $updateData['password'] = password_hash($newPassword, PASSWORD_BCRYPT);
         }
 
-        $this->userModel->update($user['id'], $updateData);
+        if (!$this->userModel->skipValidation(true)->update($user['id'], $updateData)) {
+            return redirect()->back()
+                            ->withInput()
+                            ->with('errors', $this->userModel->errors() ?: ['Gagal menyimpan perubahan. Silakan coba lagi.']);
+        }
 
         return redirect()->to('/admin/users')
                          ->with('success', 'Data petugas berhasil diperbarui.');

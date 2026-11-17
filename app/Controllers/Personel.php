@@ -180,8 +180,10 @@ class Personel extends BaseController
 
             $toggleBtn = '
                 <button type="button"
-                    class="btn-action ' . $toggleClass . '"
-                    onclick="konfirmasiToggle(\'' . $toggleUrl . '\',\'' . $nama . '\',\'' . $p['status'] . '\')">
+                    class="btn-action ' . $toggleClass . ' btn-toggle-personel"
+                    data-url="' . $toggleUrl . '"
+                    data-nama="' . $nama . '"
+                    data-status="' . esc($p['status']) . '">
                     <i class="bi ' . $toggleIcon . '"></i>
                 </button>';
 

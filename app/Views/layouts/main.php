@@ -13,7 +13,8 @@
 
     // Grup yang bisa dilipat: otomatis terbuka kalau halaman aktif ada di dalamnya
     $refOpen      = $isActive('admin/pangkat') || $isActive('admin/satker');
-    $settingsOpen = $isActive('admin/users') || $isActive('admin/backup') || $isActive('admin/maintenance');
+    $settingsOpen = $isActive('admin/users') || $isActive('admin/backup') || $isActive('admin/maintenance')
+                  || $isActive('admin/admins');
 
     // Petugas: "Scan QR Code" jangan ikut aktif saat buka Mobile Scanner
     $scanMobileActive = $isActive('petugas/scan/mobile');
@@ -578,6 +579,172 @@
             transition: none;
         }
     }
+
+    /* ── Popup konfirmasi (pengganti confirm() bawaan browser) ── */
+    .vc-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 1080;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        background: rgba(15, 23, 42, .45);
+        backdrop-filter: blur(3px);
+    }
+
+    .vc-backdrop.show {
+        display: flex;
+    }
+
+    .vc-dialog {
+        width: 100%;
+        max-width: 400px;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 24px 48px rgba(15, 23, 42, .18);
+        overflow: hidden;
+        animation: vcPop .18s ease-out;
+    }
+
+    @keyframes vcPop {
+        from {
+            opacity: 0;
+            transform: translateY(8px) scale(.97);
+        }
+
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+
+    .vc-body {
+        padding: 1.6rem 1.5rem 1.25rem;
+        text-align: center;
+    }
+
+    .vc-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin: 0 auto .9rem;
+    }
+
+    .vc-dialog[data-variant="danger"] .vc-icon {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .vc-dialog[data-variant="warning"] .vc-icon {
+        background: #fef3c7;
+        color: #d97706;
+    }
+
+    .vc-dialog[data-variant="success"] .vc-icon {
+        background: #dcfce7;
+        color: #16a34a;
+    }
+
+    .vc-dialog[data-variant="info"] .vc-icon {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .vc-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0 0 .4rem;
+    }
+
+    .vc-message {
+        font-size: .84rem;
+        color: #6b7280;
+        line-height: 1.6;
+        margin: 0;
+        white-space: pre-line;
+    }
+
+    .vc-actions {
+        display: flex;
+        gap: .6rem;
+        padding: 1rem 1.25rem;
+        background: #f9fafb;
+        border-top: 1px solid #f3f4f6;
+    }
+
+    .vc-btn {
+        flex: 1;
+        border-radius: 10px;
+        padding: .65rem 1rem;
+        font-size: .84rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color .15s;
+    }
+
+    .vc-btn:focus-visible {
+        outline: 2px solid #16a34a;
+        outline-offset: 2px;
+    }
+
+    .vc-cancel {
+        background: #fff;
+        color: #374151;
+        border: 1px solid #e5e7eb;
+    }
+
+    .vc-cancel:hover {
+        background: #f3f4f6;
+    }
+
+    .vc-ok {
+        color: #fff;
+        border: none;
+    }
+
+    .vc-dialog[data-variant="danger"] .vc-ok {
+        background: #dc2626;
+    }
+
+    .vc-dialog[data-variant="danger"] .vc-ok:hover {
+        background: #b91c1c;
+    }
+
+    .vc-dialog[data-variant="warning"] .vc-ok {
+        background: #d97706;
+    }
+
+    .vc-dialog[data-variant="warning"] .vc-ok:hover {
+        background: #b45309;
+    }
+
+    .vc-dialog[data-variant="success"] .vc-ok {
+        background: #16a34a;
+    }
+
+    .vc-dialog[data-variant="success"] .vc-ok:hover {
+        background: #15803d;
+    }
+
+    .vc-dialog[data-variant="info"] .vc-ok {
+        background: #1d4ed8;
+    }
+
+    .vc-dialog[data-variant="info"] .vc-ok:hover {
+        background: #1e40af;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .vc-dialog {
+            animation: none;
+        }
+    }
     </style>
     <?= $this->renderSection('styles') ?>
 </head>
@@ -685,6 +852,10 @@
                 </a>
 
                 <?php if ($isSuper): ?>
+                <a href="<?= base_url('admin/admins') ?>"
+                    class="nav-item-link <?= $isActive('admin/admins') ? 'active' : '' ?>">
+                    <i class="bi bi-person-gear"></i> Akun Admin
+                </a>
                 <!-- Khusus Super Admin -->
                 <a href="<?= base_url('admin/maintenance') ?>"
                     class="nav-item-link <?= $isActive('admin/maintenance') ? 'active' : '' ?>">
@@ -807,6 +978,22 @@
         </div>
     </div>
 
+    <!-- Popup konfirmasi global -->
+    <div class="vc-backdrop" id="vcBackdrop">
+        <div class="vc-dialog" id="vcDialog" role="alertdialog" aria-modal="true" aria-labelledby="vcTitle"
+            aria-describedby="vcMessage" data-variant="danger">
+            <div class="vc-body">
+                <div class="vc-icon"><i class="bi" id="vcIcon"></i></div>
+                <h2 class="vc-title" id="vcTitle"></h2>
+                <p class="vc-message" id="vcMessage"></p>
+            </div>
+            <div class="vc-actions">
+                <button type="button" class="vc-btn vc-cancel" id="vcCancel">Batal</button>
+                <button type="button" class="vc-btn vc-ok" id="vcOk">Ya, lanjutkan</button>
+            </div>
+        </div>
+    </div>
+
     <script src="<?= base_url('vendor/jquery/jquery.min.js') ?>"></script>
     <script src="<?= base_url('vendor/bootstrap/js/bootstrap.bundle.min.js') ?>"></script>
     <script src="<?= base_url('vendor/datatables/js/jquery.dataTables.min.js') ?>"></script>
@@ -836,6 +1023,101 @@
             bootstrap.Toast.getOrCreateInstance(t).hide();
         });
     }, 4000);
+
+    // ── Popup konfirmasi ──
+    // Pemakaian 1 (tanpa JavaScript): tambahkan atribut di <form>
+    //   <form data-confirm="Pesan..." data-confirm-title="Judul" data-confirm-ok="Ya, hapus"
+    //         data-confirm-variant="danger|warning|success|info">
+    // Pemakaian 2 (JavaScript): const ok = await vgsConfirm({ title, message, okText, variant });
+    (function() {
+        const ICONS = {
+            danger: 'bi-exclamation-triangle-fill',
+            warning: 'bi-exclamation-circle-fill',
+            success: 'bi-check-circle-fill',
+            info: 'bi-question-circle-fill',
+        };
+
+        const backdrop = document.getElementById('vcBackdrop');
+        const dialog = document.getElementById('vcDialog');
+        const btnOk = document.getElementById('vcOk');
+        const btnCancel = document.getElementById('vcCancel');
+        let resolver = null;
+        let lastFocus = null;
+
+        function close(result) {
+            backdrop.classList.remove('show');
+            document.removeEventListener('keydown', onKey);
+            if (lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
+            if (resolver) {
+                resolver(result);
+                resolver = null;
+            }
+        }
+
+        function onKey(e) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                close(false);
+            } else if (e.key === 'Tab') {
+                // Jaga fokus tetap di dalam popup
+                if (e.shiftKey && document.activeElement === btnCancel) {
+                    e.preventDefault();
+                    btnOk.focus();
+                } else if (!e.shiftKey && document.activeElement === btnOk) {
+                    e.preventDefault();
+                    btnCancel.focus();
+                }
+            }
+        }
+
+        window.vgsConfirm = function(opts = {}) {
+            const variant = ICONS[opts.variant] ? opts.variant : 'danger';
+
+            dialog.dataset.variant = variant;
+            document.getElementById('vcIcon').className = 'bi ' + ICONS[variant];
+            document.getElementById('vcTitle').textContent = opts.title || 'Konfirmasi';
+            document.getElementById('vcMessage').textContent = opts.message || 'Lanjutkan tindakan ini?';
+            btnOk.textContent = opts.okText || 'Ya, lanjutkan';
+            btnCancel.textContent = opts.cancelText || 'Batal';
+
+            lastFocus = document.activeElement;
+            backdrop.classList.add('show');
+            document.addEventListener('keydown', onKey);
+            // Fokus awal di "Batal" supaya Enter tidak langsung menjalankan tindakan berbahaya
+            btnCancel.focus();
+
+            return new Promise(resolve => {
+                resolver = resolve;
+            });
+        };
+
+        btnOk.addEventListener('click', () => close(true));
+        btnCancel.addEventListener('click', () => close(false));
+        backdrop.addEventListener('click', e => {
+            if (e.target === backdrop) close(false);
+        });
+
+        // Form dengan atribut data-confirm otomatis memakai popup ini
+        document.addEventListener('submit', async function(e) {
+            const form = e.target;
+            if (!(form instanceof HTMLFormElement) || !form.hasAttribute('data-confirm')) return;
+
+            e.preventDefault();
+
+            const ok = await window.vgsConfirm({
+                title: form.dataset.confirmTitle,
+                message: form.dataset.confirm,
+                okText: form.dataset.confirmOk,
+                variant: form.dataset.confirmVariant,
+            });
+
+            if (ok) {
+                const btn = form.querySelector('[type="submit"]');
+                if (btn) btn.disabled = true; // cegah klik ganda
+                HTMLFormElement.prototype.submit.call(form);
+            }
+        });
+    })();
 
     // ── Sidebar: grup yang bisa dilipat ──
     document.querySelectorAll('.nav-group-toggle').forEach(btn => {
